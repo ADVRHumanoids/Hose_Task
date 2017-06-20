@@ -242,22 +242,6 @@ namespace myfsm{
 
      };
  
-    class Ungrasped_Done : public MacroState {
-
-      virtual std::string get_name() const { return "Ungrasped_Done"; }
-
-      virtual void run(double time, double period);
-
-      virtual void entry(const XBot::FSM::Message& msg);
-
-      virtual void react(const XBot::FSM::Event& e);
-
-      virtual void exit ();
-
-      private:
-
-
-     };
  
     class Push_Fail : public MacroState {
 

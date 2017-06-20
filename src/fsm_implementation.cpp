@@ -53,7 +53,13 @@ void
 myfsm::Move_RH::run (double time, double period)
 {
   std::cout << "Move_RH run" << std::endl;
-  transit("Grasp_RH");
+  
+  bool grasp_fail = false;
+  
+  if (grasp_fail)
+    transit("Grasp_Fail");
+  else
+    transit("Grasp_RH");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -86,7 +92,13 @@ void
 myfsm::Grasp_RH::run(double time, double period)
 {
   std::cout << "Grasp_RH run" << std::endl;
-  transit("Grasp_RH_Done");
+  
+  bool grasp_fail = false;
+  
+  if (grasp_fail)
+    transit("Grasp_Fail");
+  else
+    transit("Grasp_RH_Done");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -152,7 +164,13 @@ void
 myfsm::Orient_RH::run(double time, double period)
 {
   std::cout << "Orient_RH run" << std::endl;
-  transit("Orient_RH_Done");
+  
+  bool orient_fail = false;
+  
+  if (orient_fail)
+    transit("Orient_Fail");
+  else
+    transit("Orient_RH_Done");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -251,7 +269,16 @@ void
 myfsm::Push_LH::run(double time, double period)
 {
   std::cout << "Push_LH run" << std::endl;
-  transit("Push_LH_Done");
+  
+  bool orient_fail = false;
+  bool push_fail = false;
+  
+  if (push_fail)
+    transit("Push_Fail");
+  else if (orient_fail)
+    transit("Orient_Fail");
+  else
+    transit("Push_LH_Done");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -348,6 +375,7 @@ void
 myfsm::Grasp_Fail::run (double time, double period)
 {
   std::cout << "Grasp_Fail run" << std::endl;
+  transit("Push_LH_Done");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -380,6 +408,13 @@ void
 myfsm::Orient_Fail::run (double time, double period)
 {
   std::cout << "Orient_Fail run" << std::endl;
+  bool orient_fail = true;
+  bool grasp_fail = false;
+  
+  if (orient_fail)
+    transit("Grasp_RH_Done");
+  else if (grasp_fail)
+    transit("Grasp_Fail");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -390,38 +425,6 @@ myfsm::Orient_Fail::exit ()
 }
 
 /*END Orient_Fail*/
-
-
- /*BEGIN Ungrasped_Done*/
-///////////////////////////////////////////////////////////////////////////////
-void
-myfsm::Ungrasped_Done::react (const XBot::FSM::Event& e)
-{
-
-}
-
-///////////////////////////////////////////////////////////////////////////////
-void
-myfsm::Ungrasped_Done::entry (const XBot::FSM::Message& msg)
-{
-
-}
-
-///////////////////////////////////////////////////////////////////////////////
-void
-myfsm::Ungrasped_Done::run (double time, double period)
-{
-  std::cout << "Ungrasped_Done run" << std::endl;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-void
-myfsm::Ungrasped_Done::exit ()
-{
-
-}
-
-/*END Ungrasped_Done*/
 
 
  /*BEGIN Push_Fail*/
@@ -444,6 +447,7 @@ void
 myfsm::Push_Fail::run (double time, double period)
 {
   std::cout << "Push_Fail run" << std::endl;
+  transit("Orient_Fail");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
