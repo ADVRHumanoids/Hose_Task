@@ -191,10 +191,23 @@ namespace myfsm{
       virtual void exit ();
 
       private:
-
-
      };
  
+     class Homing : public MacroState {
+
+      virtual std::string get_name() const { return "Homing"; }
+
+      virtual void run(double time, double period);
+
+      virtual void entry(const XBot::FSM::Message& msg);
+
+      virtual void react(const XBot::FSM::Event& e);
+
+      virtual void exit ();
+
+      private:
+     };
+     
     class Grasp_Fail : public MacroState {
 
       virtual std::string get_name() const { return "Grasp_Fail"; }

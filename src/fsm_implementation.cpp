@@ -19,7 +19,8 @@ myfsm::Home::entry (const XBot::FSM::Message& msg)
 void
 myfsm::Home::run (double time, double period)
 {
-
+  std::cout << "Home run" << std::endl;
+  transit("Move_RH");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -51,7 +52,8 @@ myfsm::Move_RH::entry (const XBot::FSM::Message& msg)
 void
 myfsm::Move_RH::run (double time, double period)
 {
-
+  std::cout << "Move_RH run" << std::endl;
+  transit("Grasp_RH");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -83,7 +85,8 @@ myfsm::Grasp_RH::entry(const XBot::FSM::Message& msg)
 void
 myfsm::Grasp_RH::run(double time, double period)
 {
-
+  std::cout << "Grasp_RH run" << std::endl;
+  transit("Grasp_RH_Done");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -115,7 +118,8 @@ myfsm::Grasp_RH_Done::entry (const XBot::FSM::Message& msg)
 void
 myfsm::Grasp_RH_Done::run (double time, double period)
 {
-
+  std::cout << "Grasp_RH_Done run" << std::endl;
+  transit("Orient_RH");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -147,7 +151,8 @@ myfsm::Orient_RH::entry (const XBot::FSM::Message& msg)
 void
 myfsm::Orient_RH::run(double time, double period)
 {
-
+  std::cout << "Orient_RH run" << std::endl;
+  transit("Orient_RH_Done");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -179,7 +184,8 @@ myfsm::Orient_RH_Done::entry (const XBot::FSM::Message& msg)
 void
 myfsm::Orient_RH_Done::run (double time, double period)
 {
-
+  std::cout << "Orient_RH_Done run" << std::endl;
+  transit("Move_LH");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -211,7 +217,8 @@ myfsm::Move_LH::entry (const XBot::FSM::Message& msg)
 void
 myfsm::Move_LH::run (double time, double period)
 {
-
+  std::cout << "Move_LH run" << std::endl;
+  transit("Push_LH");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -243,7 +250,8 @@ myfsm::Push_LH::entry (const XBot::FSM::Message& msg)
 void
 myfsm::Push_LH::run(double time, double period)
 {
-
+  std::cout << "Push_LH run" << std::endl;
+  transit("Push_LH_Done");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -275,7 +283,8 @@ myfsm::Push_LH_Done::entry (const XBot::FSM::Message& msg)
 void
 myfsm::Push_LH_Done::run (double time, double period)
 {
-
+  std::cout << "Push_LH_Done run" << std::endl;
+  transit("Homing");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -286,6 +295,37 @@ myfsm::Push_LH_Done::exit ()
 }
 
 /*END Push_LH_Done*/
+
+
+ /*BEGIN Homing*/
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Homing::react (const XBot::FSM::Event& e)
+{
+
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Homing::entry (const XBot::FSM::Message& msg)
+{
+  std::cout << "Homing entry" << std::endl;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Homing::run (double time, double period)
+{
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Homing::exit ()
+{
+
+}
+
+/*END Homing*/
 
 
  /*BEGIN Grasp_Fail*/
@@ -307,7 +347,7 @@ myfsm::Grasp_Fail::entry (const XBot::FSM::Message& msg)
 void
 myfsm::Grasp_Fail::run (double time, double period)
 {
-
+  std::cout << "Grasp_Fail run" << std::endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -339,7 +379,7 @@ myfsm::Orient_Fail::entry (const XBot::FSM::Message& msg)
 void
 myfsm::Orient_Fail::run (double time, double period)
 {
-
+  std::cout << "Orient_Fail run" << std::endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -371,7 +411,7 @@ myfsm::Ungrasped_Done::entry (const XBot::FSM::Message& msg)
 void
 myfsm::Ungrasped_Done::run (double time, double period)
 {
-
+  std::cout << "Ungrasped_Done run" << std::endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -403,7 +443,7 @@ myfsm::Push_Fail::entry (const XBot::FSM::Message& msg)
 void
 myfsm::Push_Fail::run (double time, double period)
 {
-
+  std::cout << "Push_Fail run" << std::endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
