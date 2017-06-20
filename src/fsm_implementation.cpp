@@ -1,29 +1,31 @@
 #include "fsm_definition.h"
 
  /*BEGIN Home*/
-
+///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Home::react(const XBot::FSM::Event& e)
+myfsm::Home::react (const XBot::FSM::Event& e)
 {
   std::cout << "Home react" << std::endl;
 }
 
-void myfsm::Home::entry(const XBot::FSM::Message& msg){
-
-  
-
-}
-
-
-void myfsm::Home::run(double time, double period){
-
- 
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Home::entry (const XBot::FSM::Message& msg)
+{
 
 }
 
-void myfsm::Home::exit (){
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Home::run (double time, double period)
+{
 
- 
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Home::exit ()
+{
 
 }
 
@@ -31,29 +33,31 @@ void myfsm::Home::exit (){
 
 
  /*BEGIN Move_RH*/
-
-void myfsm::Move_RH::react(const XBot::FSM::Event& e) {
-
- 
-
-}
-
-void myfsm::Move_RH::entry(const XBot::FSM::Message& msg){
-
-  
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Move_RH::react (const XBot::FSM::Event& e)
+{
 
 }
 
-
-void myfsm::Move_RH::run(double time, double period){
-
- 
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Move_RH::entry (const XBot::FSM::Message& msg)
+{
 
 }
 
-void myfsm::Move_RH::exit (){
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Move_RH::run (double time, double period)
+{
 
- 
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Move_RH::exit ()
+{
 
 }
 
@@ -61,29 +65,31 @@ void myfsm::Move_RH::exit (){
 
 
  /*BEGIN Grasp_RH*/
-
-void myfsm::Grasp_RH::react(const XBot::FSM::Event& e) {
-
- 
-
-}
-
-void myfsm::Grasp_RH::entry(const XBot::FSM::Message& msg){
-
-  
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Grasp_RH::react (const XBot::FSM::Event& e)
+{
 
 }
 
-
-void myfsm::Grasp_RH::run(double time, double period){
-
- 
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Grasp_RH::entry(const XBot::FSM::Message& msg)
+{
 
 }
 
-void myfsm::Grasp_RH::exit (){
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Grasp_RH::run(double time, double period)
+{
 
- 
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Grasp_RH::exit ()
+{
 
 }
 
@@ -91,29 +97,31 @@ void myfsm::Grasp_RH::exit (){
 
 
  /*BEGIN Grasp_RH_Done*/
-
-void myfsm::Grasp_RH_Done::react(const XBot::FSM::Event& e) {
-
- 
-
-}
-
-void myfsm::Grasp_RH_Done::entry(const XBot::FSM::Message& msg){
-
-  
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Grasp_RH_Done::react (const XBot::FSM::Event& e)
+{
 
 }
 
-
-void myfsm::Grasp_RH_Done::run(double time, double period){
-
- 
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Grasp_RH_Done::entry (const XBot::FSM::Message& msg)
+{
 
 }
 
-void myfsm::Grasp_RH_Done::exit (){
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Grasp_RH_Done::run (double time, double period)
+{
 
- 
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Grasp_RH_Done::exit ()
+{
 
 }
 
@@ -121,59 +129,63 @@ void myfsm::Grasp_RH_Done::exit (){
 
 
  /*BEGIN Orient_RH*/
-
-void myfsm::Orient_RH::react(const XBot::FSM::Event& e) {
-
- 
-
-}
-
-void myfsm::Orient_RH::entry(const XBot::FSM::Message& msg){
-
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Orient_RH::react (const XBot::FSM::Event& e)
+{
   
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Orient_RH::entry (const XBot::FSM::Message& msg)
+{
 
 }
 
-
-void myfsm::Orient_RH::run(double time, double period){
-
- 
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Orient_RH::run(double time, double period)
+{
 
 }
 
-void myfsm::Orient_RH::exit (){
-
- 
-
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Orient_RH::exit ()
+{
+  
 }
 
 /*END Orient_RH*/
 
 
  /*BEGIN Orient_RH_Done*/
-
-void myfsm::Orient_RH_Done::react(const XBot::FSM::Event& e) {
-
- 
-
-}
-
-void myfsm::Orient_RH_Done::entry(const XBot::FSM::Message& msg){
-
-  
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Orient_RH_Done::react (const XBot::FSM::Event& e)
+{
 
 }
 
-
-void myfsm::Orient_RH_Done::run(double time, double period){
-
- 
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Orient_RH_Done::entry (const XBot::FSM::Message& msg)
+{
 
 }
 
-void myfsm::Orient_RH_Done::exit (){
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Orient_RH_Done::run (double time, double period)
+{
 
- 
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Orient_RH_Done::exit ()
+{
 
 }
 
@@ -181,59 +193,63 @@ void myfsm::Orient_RH_Done::exit (){
 
 
  /*BEGIN Move_LH*/
-
-void myfsm::Move_LH::react(const XBot::FSM::Event& e) {
-
- 
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Move_LH::react (const XBot::FSM::Event& e)
+{
 
 }
 
-void myfsm::Move_LH::entry(const XBot::FSM::Message& msg){
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Move_LH::entry (const XBot::FSM::Message& msg)
+{
 
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Move_LH::run (double time, double period)
+{
+
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Move_LH::exit ()
+{
   
-
-}
-
-
-void myfsm::Move_LH::run(double time, double period){
-
- 
-
-}
-
-void myfsm::Move_LH::exit (){
-
- 
-
 }
 
 /*END Move_LH*/
 
 
  /*BEGIN Push_LH*/
-
-void myfsm::Push_LH::react(const XBot::FSM::Event& e) {
-
- 
-
-}
-
-void myfsm::Push_LH::entry(const XBot::FSM::Message& msg){
-
-  
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Push_LH::react (const XBot::FSM::Event& e)
+{
 
 }
 
-
-void myfsm::Push_LH::run(double time, double period){
-
- 
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Push_LH::entry (const XBot::FSM::Message& msg)
+{
 
 }
 
-void myfsm::Push_LH::exit (){
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Push_LH::run(double time, double period)
+{
 
- 
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Push_LH::exit ()
+{
 
 }
 
@@ -241,29 +257,31 @@ void myfsm::Push_LH::exit (){
 
 
  /*BEGIN Push_LH_Done*/
-
-void myfsm::Push_LH_Done::react(const XBot::FSM::Event& e) {
-
- 
-
-}
-
-void myfsm::Push_LH_Done::entry(const XBot::FSM::Message& msg){
-
-  
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Push_LH_Done::react (const XBot::FSM::Event& e)
+{
 
 }
 
-
-void myfsm::Push_LH_Done::run(double time, double period){
-
- 
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Push_LH_Done::entry (const XBot::FSM::Message& msg)
+{
 
 }
 
-void myfsm::Push_LH_Done::exit (){
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Push_LH_Done::run (double time, double period)
+{
 
- 
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Push_LH_Done::exit ()
+{
 
 }
 
@@ -271,29 +289,31 @@ void myfsm::Push_LH_Done::exit (){
 
 
  /*BEGIN Grasp_Fail*/
-
-void myfsm::Grasp_Fail::react(const XBot::FSM::Event& e) {
-
- 
-
-}
-
-void myfsm::Grasp_Fail::entry(const XBot::FSM::Message& msg){
-
-  
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Grasp_Fail::react (const XBot::FSM::Event& e)
+{
 
 }
 
-
-void myfsm::Grasp_Fail::run(double time, double period){
-
- 
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Grasp_Fail::entry (const XBot::FSM::Message& msg)
+{
 
 }
 
-void myfsm::Grasp_Fail::exit (){
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Grasp_Fail::run (double time, double period)
+{
 
- 
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Grasp_Fail::exit ()
+{
 
 }
 
@@ -301,29 +321,31 @@ void myfsm::Grasp_Fail::exit (){
 
 
  /*BEGIN Orient_Fail*/
-
-void myfsm::Orient_Fail::react(const XBot::FSM::Event& e) {
-
- 
-
-}
-
-void myfsm::Orient_Fail::entry(const XBot::FSM::Message& msg){
-
-  
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Orient_Fail::react (const XBot::FSM::Event& e)
+{
 
 }
 
-
-void myfsm::Orient_Fail::run(double time, double period){
-
- 
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Orient_Fail::entry (const XBot::FSM::Message& msg)
+{
 
 }
 
-void myfsm::Orient_Fail::exit (){
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Orient_Fail::run (double time, double period)
+{
 
- 
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Orient_Fail::exit ()
+{
 
 }
 
@@ -331,29 +353,31 @@ void myfsm::Orient_Fail::exit (){
 
 
  /*BEGIN Ungrasped_Done*/
-
-void myfsm::Ungrasped_Done::react(const XBot::FSM::Event& e) {
-
- 
-
-}
-
-void myfsm::Ungrasped_Done::entry(const XBot::FSM::Message& msg){
-
-  
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Ungrasped_Done::react (const XBot::FSM::Event& e)
+{
 
 }
 
-
-void myfsm::Ungrasped_Done::run(double time, double period){
-
- 
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Ungrasped_Done::entry (const XBot::FSM::Message& msg)
+{
 
 }
 
-void myfsm::Ungrasped_Done::exit (){
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Ungrasped_Done::run (double time, double period)
+{
 
- 
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Ungrasped_Done::exit ()
+{
 
 }
 
@@ -361,33 +385,32 @@ void myfsm::Ungrasped_Done::exit (){
 
 
  /*BEGIN Push_Fail*/
-
-void myfsm::Push_Fail::react(const XBot::FSM::Event& e) {
-
- 
-
-}
-
-void myfsm::Push_Fail::entry(const XBot::FSM::Message& msg){
-
-  
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Push_Fail::react (const XBot::FSM::Event& e)
+{
 
 }
 
-
-void myfsm::Push_Fail::run(double time, double period){
-
- 
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Push_Fail::entry (const XBot::FSM::Message& msg)
+{
 
 }
 
-void myfsm::Push_Fail::exit (){
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Push_Fail::run (double time, double period)
+{
 
- 
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Push_Fail::exit ()
+{
 
 }
 
 /*END Push_Fail*/
-
-
-
