@@ -24,98 +24,114 @@ REGISTER_XBOT_PLUGIN(Hose_Task, XBotPlugin::Hose_Task)
 
 namespace XBotPlugin {
 
-bool Hose_Task::init_control_plugin(std::string path_to_config_file,
-                                                    XBot::SharedMemory::Ptr shared_memory,
-                                                    XBot::RobotInterface::Ptr robot)
+bool
+Hose_Task::init_control_plugin (std::string path_to_config_file,
+                                XBot::SharedMemory::Ptr shared_memory,
+                                XBot::RobotInterface::Ptr robot)
 {
-    /* This function is called outside the real time loop, so we can
-     * allocate memory on the heap, print stuff, ...
-     * The RT plugin will be executed only if this init function returns true. */
+  /* This function is called outside the real time loop, so we can
+   * allocate memory on the heap, print stuff, ...
+   * The RT plugin will be executed only if this init function returns true.
+   */
 
 
-    /* Save robot to a private member. */
-    _robot = robot;
+  /* Save robot to a private member. */
+  _robot = robot;
 
-    /* Initialize a logger which saves to the specified file. Remember that
-     * the current date/time is always appended to the provided filename,
-     * so that logs do not overwrite each other. */
+  /* Initialize a logger which saves to the specified file. Remember that
+   * the current date/time is always appended to the provided filename,
+   * so that logs do not overwrite each other.
+   */
     
-    _logger = XBot::MatLogger::getLogger("/tmp/Hose_Task_log");
-
-
-    /*Saves robot as shared variable between states*/
-    fsm.shared_data()._robot= robot;
+  _logger = XBot::MatLogger::getLogger("/tmp/Hose_Task_log");
+  
+  // ROS initialization
+  int argc = 1;
+  const char *arg = "dummy_arg";
+  char* argg = const_cast<char*>(arg);
+  char** argv = &argg;
     
-    /*Registers states*/
-    fsm.register_state(std::make_shared<myfsm::Home>());
-    fsm.register_state(std::make_shared<myfsm::Move_RH>());
-    fsm.register_state(std::make_shared<myfsm::Grasp_RH>());
-    fsm.register_state(std::make_shared<myfsm::Grasp_RH_Done>());
-    fsm.register_state(std::make_shared<myfsm::Orient_RH>());
-    fsm.register_state(std::make_shared<myfsm::Orient_RH_Done>());
-    fsm.register_state(std::make_shared<myfsm::Move_LH>());
-    fsm.register_state(std::make_shared<myfsm::Push_LH>());
-    fsm.register_state(std::make_shared<myfsm::Push_LH_Done>());
-    fsm.register_state(std::make_shared<myfsm::Homing>());
-    fsm.register_state(std::make_shared<myfsm::Move_Fail>());
-    fsm.register_state(std::make_shared<myfsm::Grasp_Fail>());
-    fsm.register_state(std::make_shared<myfsm::Orient_Fail>());
-    fsm.register_state(std::make_shared<myfsm::Push_Fail>());
+  ros::init(argc, argv, "Hose_Task");
+  fsm.shared_data()._nh = std::make_shared<ros::NodeHandle>();
+
+
+  /*Saves robot as shared variable between states*/
+  fsm.shared_data()._robot= robot;
     
-    // Initialize the FSM with the initial state
-    fsm.init("Home");
+  /*Registers states*/
+  fsm.register_state(std::make_shared<myfsm::Home>());
+  fsm.register_state(std::make_shared<myfsm::Move_RH>());
+  fsm.register_state(std::make_shared<myfsm::Grasp_RH>());
+  fsm.register_state(std::make_shared<myfsm::Grasp_RH_Done>());
+  fsm.register_state(std::make_shared<myfsm::Orient_RH>());
+  fsm.register_state(std::make_shared<myfsm::Orient_RH_Done>());
+  fsm.register_state(std::make_shared<myfsm::Move_LH>());
+  fsm.register_state(std::make_shared<myfsm::Push_LH>());
+  fsm.register_state(std::make_shared<myfsm::Push_LH_Done>());
+  fsm.register_state(std::make_shared<myfsm::Homing>());
+  fsm.register_state(std::make_shared<myfsm::Move_Fail>());
+  fsm.register_state(std::make_shared<myfsm::Grasp_Fail>());
+  fsm.register_state(std::make_shared<myfsm::Orient_Fail>());
+  fsm.register_state(std::make_shared<myfsm::Push_Fail>());
+    
+  // Initialize the FSM with the initial state
+  fsm.init("Home");
 
-    return true;
-
-
+  return true;
 }
 
-void Hose_Task::on_start(double time)
+void
+Hose_Task::on_start (double time)
 {
-    /* This function is called on plugin start, i.e. when the start command
-     * is sent over the plugin switch port (e.g. 'rosservice call /Hose_Task_switch true').
-     * Since this function is called within the real-time loop, you should not perform
-     * operations that are not rt-safe. */
+  /* This function is called on plugin start, i.e. when the start command
+   * is sent over the plugin switch port (e.g. 'rosservice call /Hose_Task_switch true').
+   * Since this function is called within the real-time loop, you should not perform
+   * operations that are not rt-safe.
+   */
 
-    /* Save the plugin starting time to a class member */
-    _robot->getMotorPosition(_q0);
+  /* Save the plugin starting time to a class member */
+  _robot->getMotorPosition(_q0);
 
-    /* Save the robot starting config to a class member */
-    _start_time = time;
+  /* Save the robot starting config to a class member */
+  _start_time = time;
 }
 
-void Hose_Task::on_stop(double time)
+void
+Hose_Task::on_stop (double time)
 {
-    /* This function is called on plugin stop, i.e. when the stop command
-     * is sent over the plugin switch port (e.g. 'rosservice call /Hose_Task_switch false').
-     * Since this function is called within the real-time loop, you should not perform
-     * operations that are not rt-safe. */
+  /* This function is called on plugin stop, i.e. when the stop command
+   * is sent over the plugin switch port (e.g. 'rosservice call /Hose_Task_switch false').
+   * Since this function is called within the real-time loop, you should not perform
+   * operations that are not rt-safe.
+   */
 }
 
-
-void Hose_Task::control_loop(double time, double period)
+void
+Hose_Task::control_loop (double time, double period)
 {
-    /* This function is called on every control loop from when the plugin is start until
-     * it is stopped.
-     * Since this function is called within the real-time loop, you should not perform
-     * operations that are not rt-safe. */
-
-
-     fsm.run(time, 0.01);
-
+  /* This function is called on every control loop from when the plugin is start until
+   * it is stopped.
+   * Since this function is called within the real-time loop, you should not perform
+   * operations that are not rt-safe.
+   */
+  
+  fsm.run(time, 0.01);
+  
+  // Spin ROS
+  ros::spinOnce();
 }
 
-bool Hose_Task::close()
+bool
+Hose_Task::close ()
 {
-    /* This function is called exactly once, at the end of the experiment.
-     * It can be used to do some clean-up, or to save logging data to disk. */
+  /* This function is called exactly once, at the end of the experiment.
+   * It can be used to do some clean-up, or to save logging data to disk.
+   */
 
-    /* Save logged data to disk */
-    _logger->flush();
+  /* Save logged data to disk */
+  _logger->flush();
 
-    return true;
+  return true;
 }
-
-
 
 }

@@ -23,6 +23,13 @@
 #include <XCM/XBotControlPlugin.h>
 #include "fsm_definition.h"
 
+#include <ros/ros.h>
+
+#include <ADVR_ROS/advr_segment_control.h>
+
+#include <trajectory_utils/segment.h>
+#include <trajectory_utils/Cartesian.h>
+
 
 namespace XBotPlugin {
 

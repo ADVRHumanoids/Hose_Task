@@ -1,6 +1,6 @@
 #include "fsm_definition.h"
 
- /*BEGIN Home*/
+/******************************** BEGIN Home *********************************/
 ///////////////////////////////////////////////////////////////////////////////
 void
 myfsm::Home::react (const XBot::FSM::Event& e)
@@ -21,7 +21,12 @@ myfsm::Home::run (double time, double period)
 {
   std::cout << "Home run" << std::endl;
   
-  //TBD: Wait for RH_Pose
+  // Wait for RH_Pose, i.e. the Hose Grasp Pose (hose_grasp_pose)
+  shared_data()._hose_grasp_pose =
+    ros::topic::waitForMessage<geometry_msgs::PoseStamped>("hose_grasp_pose");
+  
+  // Debug msg
+  std::cout << shared_data()._hose_grasp_pose->pose.position.x << std::endl;
   
   transit("Move_RH");
 }
@@ -36,7 +41,7 @@ myfsm::Home::exit ()
 /*END Home*/
 
 
- /*BEGIN Move_RH*/
+/******************************* BEGIN Move_RH *******************************/
 ///////////////////////////////////////////////////////////////////////////////
 void
 myfsm::Move_RH::react (const XBot::FSM::Event& e)
@@ -48,7 +53,70 @@ myfsm::Move_RH::react (const XBot::FSM::Event& e)
 void
 myfsm::Move_RH::entry (const XBot::FSM::Message& msg)
 {
+  // Move RH to RH_Pose (1 mid point in the z-axis fixed dist)
+  
+  // define in the init of your plugin and put the client in the shared data struct
+  ros::ServiceClient client =
+    shared_data()._nh->serviceClient<ADVR_ROS::advr_segment_control>("segment_control");
+  
+  // Get currnt hand 
+  Eigen::Affine3d pose;
+  geometry_msgs::Pose start_frame_pose;
 
+  shared_data()._robot->model().getPose("LSoftHand", "Waist", pose);
+  tf::poseEigenToMsg (pose, start_frame_pose);
+
+  // define the start frame 
+  geometry_msgs::PoseStamped start_frame;
+   
+  start_frame.pose.position.x = start_frame_pose.position.x;
+  start_frame.pose.position.y = start_frame_pose.position.y;
+  start_frame.pose.position.z = start_frame_pose.position.z;
+    
+  start_frame.pose.orientation.x = start_frame_pose.orientation.x;
+  start_frame.pose.orientation.y = start_frame_pose.orientation.y;
+  start_frame.pose.orientation.z = start_frame_pose.orientation.z;
+  start_frame.pose.orientation.w = start_frame_pose.orientation.w;
+  
+  trajectory_utils::Cartesian start;
+  start.distal_frame = "LSoftHand";
+  start.frame = start_frame;
+   
+  // define the end frame
+  geometry_msgs::PoseStamped end_frame;
+  end_frame.pose.position.x = shared_data()._hose_grasp_pose->pose.position.x;
+  end_frame.pose.position.y = shared_data()._hose_grasp_pose->pose.position.y;
+  end_frame.pose.position.z = shared_data()._hose_grasp_pose->pose.position.z;
+    
+  end_frame.pose.orientation.x = shared_data()._hose_grasp_pose->pose.orientation.x;
+  end_frame.pose.orientation.y = shared_data()._hose_grasp_pose->pose.orientation.y;
+  end_frame.pose.orientation.z = shared_data()._hose_grasp_pose->pose.orientation.z;
+  end_frame.pose.orientation.w = shared_data()._hose_grasp_pose->pose.orientation.w;
+  
+  trajectory_utils::Cartesian end;
+  end.distal_frame = "LSoftHand";
+  end.frame = end_frame;
+
+
+  // define the first segment
+  trajectory_utils::segment s1;
+  s1.type.data = 0;        // min jerk traj
+  s1.T.data = 5.0;         // traj duration 5 second      
+  s1.start = start;        // start pose
+  s1.end = end;            // end pose 
+  
+  // only one segment in this example
+  std::vector<trajectory_utils::segment> segments;
+  segments.push_back (s1);
+  
+  // prapere the advr_segment_control
+  ADVR_ROS::advr_segment_control srv;
+  srv.request.segment_trj.header.frame_id = "Waist";
+  srv.request.segment_trj.header.stamp = ros::Time::now();
+  srv.request.segment_trj.segments = segments;
+    
+  // call the service
+  client.call(srv);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -57,9 +125,9 @@ myfsm::Move_RH::run (double time, double period)
 {
   std::cout << "Move_RH run" << std::endl;
   
-  //TBD: Move RH to RH_Pose (1 mid point in the z-axis fixed dist)
+  //TBD: Check if the RH has reached the hose_grasp_pose
   
-  transit("Grasp_RH");
+  //transit("Grasp_RH");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -99,7 +167,9 @@ myfsm::Grasp_RH::run(double time, double period)
   if (move_rh_fail)
     transit("Move_Fail");
   
-  //TBD: Grasp with RH 
+  //TBD: Grasp with RH
+  
+  transit("Grasp_RH_Done");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
