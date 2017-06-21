@@ -207,6 +207,22 @@ namespace myfsm{
 
       private:
      };
+    
+    class Move_Fail : public MacroState {
+
+      virtual std::string get_name() const { return "Move_Fail"; }
+
+      virtual void run(double time, double period);
+
+      virtual void entry(const XBot::FSM::Message& msg);
+
+      virtual void react(const XBot::FSM::Event& e);
+
+      virtual void exit ();
+
+      private:
+
+     };
      
     class Grasp_Fail : public MacroState {
 

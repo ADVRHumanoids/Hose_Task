@@ -57,6 +57,7 @@ bool Hose_Task::init_control_plugin(std::string path_to_config_file,
     fsm.register_state(std::make_shared<myfsm::Push_LH>());
     fsm.register_state(std::make_shared<myfsm::Push_LH_Done>());
     fsm.register_state(std::make_shared<myfsm::Homing>());
+    fsm.register_state(std::make_shared<myfsm::Move_Fail>());
     fsm.register_state(std::make_shared<myfsm::Grasp_Fail>());
     fsm.register_state(std::make_shared<myfsm::Orient_Fail>());
     fsm.register_state(std::make_shared<myfsm::Push_Fail>());

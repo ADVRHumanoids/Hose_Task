@@ -20,6 +20,9 @@ void
 myfsm::Home::run (double time, double period)
 {
   std::cout << "Home run" << std::endl;
+  
+  //TBD: Wait for RH_Pose
+  
   transit("Move_RH");
 }
 
@@ -54,12 +57,9 @@ myfsm::Move_RH::run (double time, double period)
 {
   std::cout << "Move_RH run" << std::endl;
   
-  bool grasp_fail = false;
+  //TBD: Move RH to RH_Pose (1 mid point in the z-axis fixed dist)
   
-  if (grasp_fail)
-    transit("Grasp_Fail");
-  else
-    transit("Grasp_RH");
+  transit("Grasp_RH");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -93,12 +93,13 @@ myfsm::Grasp_RH::run(double time, double period)
 {
   std::cout << "Grasp_RH run" << std::endl;
   
-  bool grasp_fail = false;
+  //TBD: check if the move has failed
+  bool move_rh_fail = false;
   
-  if (grasp_fail)
-    transit("Grasp_Fail");
-  else
-    transit("Grasp_RH_Done");
+  if (move_rh_fail)
+    transit("Move_Fail");
+  
+  //TBD: Grasp with RH 
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -131,6 +132,19 @@ void
 myfsm::Grasp_RH_Done::run (double time, double period)
 {
   std::cout << "Grasp_RH_Done run" << std::endl;
+  
+  //TBD: Check if RH_Grasp or the Move_RH has failed
+  bool grasp_rh_fail = false;
+  bool move_rh_fail = false;
+  
+  if (grasp_rh_fail)
+    transit("Grasp_Fail");
+  
+  if (move_rh_fail)
+    transit("Move_Fail");
+  
+  //TBD: Wait for RH_Pose (orientation + fixed position displayment)
+  
   transit("Orient_RH");
 }
 
@@ -165,12 +179,9 @@ myfsm::Orient_RH::run(double time, double period)
 {
   std::cout << "Orient_RH run" << std::endl;
   
-  bool orient_fail = false;
+  //TBD: Move RH to RH_Pose
   
-  if (orient_fail)
-    transit("Orient_Fail");
-  else
-    transit("Orient_RH_Done");
+  transit("Orient_RH_Done");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -203,6 +214,15 @@ void
 myfsm::Orient_RH_Done::run (double time, double period)
 {
   std::cout << "Orient_RH_Done run" << std::endl;
+
+  //TBD: Check if the RH orientation has failed
+  bool orient_fail = false;
+  
+  if (orient_fail)
+    transit("Orient_Fail");
+  
+  //TBD: Wait LH_Pose
+  
   transit("Move_LH");
 }
 
@@ -236,6 +256,10 @@ void
 myfsm::Move_LH::run (double time, double period)
 {
   std::cout << "Move_LH run" << std::endl;
+  
+  //TBD: Grasp with LH
+  //TBD: Move to LH_Pose
+  
   transit("Push_LH");
 }
 
@@ -270,6 +294,7 @@ myfsm::Push_LH::run(double time, double period)
 {
   std::cout << "Push_LH run" << std::endl;
   
+  //TBD: check if the orientation or mnove has failed
   bool orient_fail = false;
   bool push_fail = false;
   
@@ -277,8 +302,10 @@ myfsm::Push_LH::run(double time, double period)
     transit("Push_Fail");
   else if (orient_fail)
     transit("Orient_Fail");
-  else
-    transit("Push_LH_Done");
+  
+  //TBD: Move LH to fixed position a number of times
+  
+  transit("Push_LH_Done");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -311,6 +338,9 @@ void
 myfsm::Push_LH_Done::run (double time, double period)
 {
   std::cout << "Push_LH_Done run" << std::endl;
+  
+  //TBD: Ungrasp both hands
+  
   transit("Homing");
 }
 
@@ -343,6 +373,7 @@ myfsm::Homing::entry (const XBot::FSM::Message& msg)
 void
 myfsm::Homing::run (double time, double period)
 {
+  //TBD: Home
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -354,6 +385,41 @@ myfsm::Homing::exit ()
 
 /*END Homing*/
 
+
+ /*BEGIN Move_Fail*/
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Move_Fail::react (const XBot::FSM::Event& e)
+{
+
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Move_Fail::entry (const XBot::FSM::Message& msg)
+{
+
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Move_Fail::run (double time, double period)
+{
+  std::cout << "Move_Fail run" << std::endl;
+  
+  //TBD: ungrasp RH
+  //TBD: Home RH
+  transit("Home");
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Move_Fail::exit ()
+{
+
+}
+
+/*END Move_Fail*/
 
  /*BEGIN Grasp_Fail*/
 ///////////////////////////////////////////////////////////////////////////////
@@ -375,7 +441,9 @@ void
 myfsm::Grasp_Fail::run (double time, double period)
 {
   std::cout << "Grasp_Fail run" << std::endl;
-  transit("Push_LH_Done");
+  //TBD: ungrasp RH
+  
+  transit("Grasp_RH");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -408,13 +476,8 @@ void
 myfsm::Orient_Fail::run (double time, double period)
 {
   std::cout << "Orient_Fail run" << std::endl;
-  bool orient_fail = true;
-  bool grasp_fail = false;
   
-  if (orient_fail)
-    transit("Grasp_RH_Done");
-  else if (grasp_fail)
-    transit("Grasp_Fail");
+  transit("Grasp_RH_Done");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -447,6 +510,9 @@ void
 myfsm::Push_Fail::run (double time, double period)
 {
   std::cout << "Push_Fail run" << std::endl;
+  
+  //TBD: Home LH
+
   transit("Orient_Fail");
 }
 
