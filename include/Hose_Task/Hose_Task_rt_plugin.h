@@ -67,6 +67,9 @@ class Hose_Task : public XBot::XBotControlPlugin
     XBot::MatLogger::Ptr _logger;
     
     XBot::FSM::StateMachine< myfsm::MacroState , myfsm::SharedData > fsm;
+    
+    std::shared_ptr<ros::NodeHandle> _nh;
+    
 };
 
 }

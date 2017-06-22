@@ -29,6 +29,7 @@
 #include <trajectory_utils/Cartesian.h>
 
 #include <eigen_conversions/eigen_msg.h>
+#include <XBotCore-interfaces/XDomainCommunication.h>
 
 namespace myfsm{
 
@@ -57,8 +58,12 @@ namespace myfsm{
     struct SharedData
     {
       XBot::RobotInterface::Ptr _robot;
-      std::shared_ptr<ros::NodeHandle> _nh;
+      
+      ros::ServiceClient _client;
       geometry_msgs::PoseStamped::ConstPtr _hose_grasp_pose;
+      
+      XBot::SubscriberRT<XBot::Command> command;
+      XBot::Command current_command;
     };
     
     class MacroState : public  XBot::FSM::State< MacroState , SharedData >

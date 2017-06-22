@@ -37,6 +37,8 @@ Hose_Task::init_control_plugin (std::string path_to_config_file,
 
   /* Save robot to a private member. */
   _robot = robot;
+  fsm.shared_data().command = command;
+  fsm.shared_data().current_command = current_command;
 
   /* Initialize a logger which saves to the specified file. Remember that
    * the current date/time is always appended to the provided filename,
@@ -52,7 +54,10 @@ Hose_Task::init_control_plugin (std::string path_to_config_file,
   char** argv = &argg;
     
   ros::init(argc, argv, "Hose_Task");
-  fsm.shared_data()._nh = std::make_shared<ros::NodeHandle>();
+  
+  ros::NodeHandle* node_handle = new ros::NodeHandle;
+  _nh = std::shared_ptr<ros::NodeHandle>(node_handle);
+  fsm.shared_data()._client = _nh->serviceClient<ADVR_ROS::advr_segment_control>("segment_control");
 
 
   /*Saves robot as shared variable between states*/
