@@ -105,7 +105,7 @@ myfsm::Move_RH::entry (const XBot::FSM::Message& msg)
   // define the first segment
   trajectory_utils::segment s1;
   s1.type.data = 0;        // min jerk traj
-  s1.T.data = 5.0;         // traj duration 5 second      
+  s1.T.data = 1.0;         // traj duration 1 second      
   s1.start = start;        // start pose
   s1.end = end;            // end pose 
 
@@ -125,7 +125,7 @@ myfsm::Move_RH::entry (const XBot::FSM::Message& msg)
   // define the first segment
   trajectory_utils::segment s2;
   s2.type.data = 0;        // min jerk traj
-  s2.T.data = 5.0;         // traj duration 5 second      
+  s2.T.data = 1.0;         // traj duration 1 second      
   s2.start = start;        // start pose
   s2.end = end;            // end pose 
   
@@ -360,53 +360,7 @@ myfsm::Move_LH::react (const XBot::FSM::Event& e)
 void
 myfsm::Move_LH::entry (const XBot::FSM::Message& msg)
 {
-
-}
-
-///////////////////////////////////////////////////////////////////////////////
-void
-myfsm::Move_LH::run (double time, double period)
-{
-  std::cout << "Move_LH run" << std::endl;
-  
-  //TBD: Grasp with LH
-  //TBD: Move to LH_Pose
-  
-  transit("Push_LH");
-}
-
-///////////////////////////////////////////////////////////////////////////////
-void
-myfsm::Move_LH::exit ()
-{
-  
-}
-
-/*END Move_LH*/
-
-
- /*BEGIN Push_LH*/
-///////////////////////////////////////////////////////////////////////////////
-void
-myfsm::Push_LH::react (const XBot::FSM::Event& e)
-{
-
-}
-
-///////////////////////////////////////////////////////////////////////////////
-void
-myfsm::Push_LH::entry (const XBot::FSM::Message& msg)
-{
-
-}
-
-///////////////////////////////////////////////////////////////////////////////
-void
-myfsm::Push_LH::run(double time, double period)
-{
-  std::cout << "Push_LH run" << std::endl;
-  
-  // sense and sync model
+// sense and sync model
   shared_data()._robot->sense();
     
   // define in the init of your plugin and put the client in the shared data struct
@@ -419,8 +373,8 @@ myfsm::Push_LH::run(double time, double period)
   
   //shared_data()._robot->model().getPose("RSoftHand", "Waist", pose);
   shared_data()._robot->model().getPose("LSoftHand", pose);
+  tf::poseEigenToMsg (pose, start_frame_pose);
   
-  //tf::poseEigenToMsg (pose, start_frame_pose);
   //tf::Quaternion q (start_frame_pose.orientation.x,
   //                  start_frame_pose.orientation.y,
   //                  start_frame_pose.orientation.z,
@@ -455,7 +409,7 @@ myfsm::Push_LH::run(double time, double period)
   // define the first segment
   trajectory_utils::segment s1;
   s1.type.data = 0;        // min jerk traj
-  s1.T.data = 5.0;         // traj duration 5 second      
+  s1.T.data = 1.0;         // traj duration 5 second      
   s1.start = start;        // start pose
   s1.end = end;            // end pose 
   
@@ -472,7 +426,116 @@ myfsm::Push_LH::run(double time, double period)
   
   // call the service
   shared_data()._client.call(srv);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Move_LH::run (double time, double period)
+{
+  std::cout << "Move_LH run" << std::endl;
   
+  //TBD: Grasp with LH
+  //TBD: Move to LH_Pose
+  
+  // blocking reading: wait for a command
+  if(shared_data().command.read(shared_data().current_command))
+  {
+    std::cout << "Command: " << shared_data().current_command.str() << std::endl;
+
+    // LH Move Succeeded
+    if (!shared_data().current_command.str().compare("success"))
+      transit("Push_LH");
+  }
+  }
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Move_LH::exit ()
+{
+  
+}
+
+/*END Move_LH*/
+
+
+ /*BEGIN Push_LH*/
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Push_LH::react (const XBot::FSM::Event& e)
+{
+
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Push_LH::entry (const XBot::FSM::Message& msg)
+{
+
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Push_LH::run (double time, double period)
+{
+  std::cout << "Push_LH run" << std::endl;
+
+  // sense and sync model
+  shared_data()._robot->sense();
+    
+  // Get currnt hand 
+  Eigen::Affine3d pose;
+  geometry_msgs::Pose start_frame_pose;
+  
+  shared_data()._robot->model().getPose("LSoftHand", pose);
+  tf::poseEigenToMsg (pose, start_frame_pose);
+    
+  // define the start frame 
+  geometry_msgs::PoseStamped start_frame;
+  start_frame.pose = start_frame_pose;
+  
+  // define the end frame
+  geometry_msgs::PoseStamped end_frame;
+  end_frame.pose = start_frame_pose;
+ 
+  trajectory_utils::Cartesian start;
+  start.distal_frame = "LSoftHand";
+  
+  trajectory_utils::Cartesian end;
+  end.distal_frame = "LSoftHand";
+  
+  // define the first segment
+  trajectory_utils::segment s1;
+  
+  
+  // only one segment in this example
+  std::vector<trajectory_utils::segment> segments;
+  
+  for (int i=0; i<5; i++)
+  {
+    start_frame.pose.position.z = end_frame.pose.position.z;
+    start.frame = start_frame;
+
+    std::cout << "S end_frame.pose.position.z: " << end_frame.pose.position.z << std::endl;
+    end_frame.pose.position.z -= 0.05*pow(-1,i);
+    std::cout << "F end_frame.pose.position.z: " << end_frame.pose.position.z << std::endl;
+    end.frame = end_frame;
+    s1.type.data = 0;        // min jerk traj
+    s1.T.data = 1.0;         // traj duration 5 second      
+    s1.start = start;        // start pose
+    s1.end = end;            // end pose 
+    segments.push_back (s1);
+  }
+  
+  // prapere the advr_segment_control
+  ADVR_ROS::advr_segment_control srv;
+  //srv.request.segment_trj.header.frame_id = "Waist";
+  srv.request.segment_trj.header.frame_id = "world";
+  srv.request.segment_trj.header.stamp = ros::Time::now();
+  srv.request.segment_trj.segments = segments;
+  
+  // call the service
+  shared_data()._client.call(srv);
+
   //TBD: check if the orientation or mnove has failed
   bool orient_fail = false;
   bool push_fail = false;
