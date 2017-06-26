@@ -24,6 +24,7 @@
 #include "fsm_definition.h"
 
 #include <ros/ros.h>
+#include <std_msgs/Bool.h>
 
 #include <ADVR_ROS/advr_segment_control.h>
 
@@ -33,10 +34,7 @@
 
 namespace XBotPlugin {
 
-/**
- * @brief Hose_Task XBot RT Plugin
- *
- **/
+/** \brief Hose_Task XBot RT Plugin **/
 class Hose_Task : public XBot::XBotControlPlugin
 {
 
@@ -62,14 +60,13 @@ class Hose_Task : public XBot::XBotControlPlugin
 
     double _start_time;
 
-    Eigen::VectorXd _q0;
+    //Eigen::VectorXd _q0;
 
     XBot::MatLogger::Ptr _logger;
     
     XBot::FSM::StateMachine< myfsm::MacroState , myfsm::SharedData > fsm;
     
     std::shared_ptr<ros::NodeHandle> _nh;
-    
 };
 
 }

@@ -20,10 +20,30 @@ void
 myfsm::Home::run (double time, double period)
 {
   std::cout << "Home run" << std::endl;
+  
+  // Home the robot
+  localTimer = localTimer >1 ? 1: localTimer;
    
+  shared_data()._robot->setPositionReference (shared_data()._q0+localTimer*(shared_data().state[0]-shared_data()._q0));
+  shared_data()._robot->move();
+  
+  if( localTimer == 1)
+  {
+    shared_data()._robot->getJointPosition(shared_data()._q0);
+    localTimer = 0;
+    transit("Move_RH");
+  }
+  
+  localTimer += localStep;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Home::exit ()
+{
   // blocking reading: wait for a command
-  //if(!shared_data().command.read(shared_data().current_command))
-  //  std::cout << shared_data().current_command.str() << std::endl;
+  if(!shared_data().command.read(shared_data().current_command))
+    std::cout << shared_data().current_command.str() << std::endl;
   
   // Wait for RH_Pose, i.e. the Hose Grasp Pose (hose_grasp_pose)
   shared_data()._hose_grasp_pose =
@@ -32,14 +52,6 @@ myfsm::Home::run (double time, double period)
   // Debug msg
   std::cout << shared_data()._hose_grasp_pose->pose.position.x << std::endl;
   
-  transit("Move_RH");
-}
-
-///////////////////////////////////////////////////////////////////////////////
-void
-myfsm::Home::exit ()
-{
-
 }
 
 /*END Home*/
@@ -57,9 +69,10 @@ myfsm::Move_RH::react (const XBot::FSM::Event& e)
 void
 myfsm::Move_RH::entry (const XBot::FSM::Message& msg)
 {
+  std::cout << "Move_RH entry" << std::endl;
+
+
   // Move RH to RH_Pose (1 mid point in the z-axis fixed dist)
- 
-  std::cout << "Move_RH run" << std::endl;
 
   // sense and sync model
   shared_data()._robot->sense();
@@ -73,7 +86,7 @@ myfsm::Move_RH::entry (const XBot::FSM::Message& msg)
   geometry_msgs::Pose start_frame_pose;
 
   //shared_data()._robot->model().getPose("RSoftHand", "Waist", pose);
-  shared_data()._robot->model().getPose("RSoftHand", pose);
+  shared_data()._robot->model().getPose("LSoftHand", pose);
   tf::poseEigenToMsg (pose, start_frame_pose);
 
   // define the start frame 
@@ -86,7 +99,7 @@ myfsm::Move_RH::entry (const XBot::FSM::Message& msg)
 
   end_frame.pose.position.x = shared_data()._hose_grasp_pose->pose.position.x;
   end_frame.pose.position.y = shared_data()._hose_grasp_pose->pose.position.y;
-  end_frame.pose.position.z = shared_data()._hose_grasp_pose->pose.position.z-0.1;
+  end_frame.pose.position.z = shared_data()._hose_grasp_pose->pose.position.z+0.1;
     
   end_frame.pose.orientation.x = shared_data()._hose_grasp_pose->pose.orientation.x;
   end_frame.pose.orientation.y = shared_data()._hose_grasp_pose->pose.orientation.y;
@@ -94,18 +107,18 @@ myfsm::Move_RH::entry (const XBot::FSM::Message& msg)
   end_frame.pose.orientation.w = shared_data()._hose_grasp_pose->pose.orientation.w;
   
   trajectory_utils::Cartesian start;
-  start.distal_frame = "RSoftHand";
+  start.distal_frame = "LSoftHand";
   start.frame = start_frame;
   
   trajectory_utils::Cartesian end;
-  end.distal_frame = "RSoftHand";
+  end.distal_frame = "LSoftHand";
   end.frame = end_frame;
 
 
   // define the first segment
   trajectory_utils::segment s1;
   s1.type.data = 0;        // min jerk traj
-  s1.T.data = 1.0;         // traj duration 1 second      
+  s1.T.data = 5.0;         // traj duration 1 second      
   s1.start = start;        // start pose
   s1.end = end;            // end pose 
 
@@ -125,7 +138,7 @@ myfsm::Move_RH::entry (const XBot::FSM::Message& msg)
   // define the first segment
   trajectory_utils::segment s2;
   s2.type.data = 0;        // min jerk traj
-  s2.T.data = 1.0;         // traj duration 1 second      
+  s2.T.data = 5.0;         // traj duration 1 second      
   s2.start = start;        // start pose
   s2.end = end;            // end pose 
   
@@ -149,9 +162,16 @@ myfsm::Move_RH::entry (const XBot::FSM::Message& msg)
 void
 myfsm::Move_RH::run (double time, double period)
 {
-  std::cout << "Move_RH run" << std::endl;
+  //std::cout << "Move_RH run" << std::endl;
   
-  //TBD: Check if the RH has reached the hose_grasp_pose
+  // Magnetise cmd
+  
+  std_msgs::Bool msg;
+  msg.data = true;
+  for (int i=0; i<10; i++)
+    shared_data()._grasp_mag_pub.publish (msg);
+  
+  //TBD: Check if the RH has reached the hose_grasp_pose 
   
   // blocking reading: wait for a command
   if(shared_data().command.read(shared_data().current_command))
@@ -160,7 +180,7 @@ myfsm::Move_RH::run (double time, double period)
 
     // RH Move failed
     if (!shared_data().current_command.str().compare("rh_move_fail"))
-      transit("Home");
+      transit("Move_RH");
     
     // RH Move Succeeded
     if (!shared_data().current_command.str().compare("success"))
@@ -372,7 +392,7 @@ myfsm::Move_LH::entry (const XBot::FSM::Message& msg)
   geometry_msgs::Pose start_frame_pose;
   
   //shared_data()._robot->model().getPose("RSoftHand", "Waist", pose);
-  shared_data()._robot->model().getPose("LSoftHand", pose);
+  shared_data()._robot->model().getPose("RSoftHand", pose);
   tf::poseEigenToMsg (pose, start_frame_pose);
   
   //tf::Quaternion q (start_frame_pose.orientation.x,
@@ -399,17 +419,17 @@ myfsm::Move_LH::entry (const XBot::FSM::Message& msg)
   end_frame.pose.orientation.w = 0.7071;
   
   trajectory_utils::Cartesian start;
-  start.distal_frame = "LSoftHand";
+  start.distal_frame = "RSoftHand";
   start.frame = start_frame;
   
   trajectory_utils::Cartesian end;
-  end.distal_frame = "LSoftHand";
+  end.distal_frame = "RSoftHand";
   end.frame = end_frame;
   
   // define the first segment
   trajectory_utils::segment s1;
   s1.type.data = 0;        // min jerk traj
-  s1.T.data = 1.0;         // traj duration 5 second      
+  s1.T.data = 5.0;         // traj duration 5 second      
   s1.start = start;        // start pose
   s1.end = end;            // end pose 
   
@@ -486,7 +506,7 @@ myfsm::Push_LH::run (double time, double period)
   Eigen::Affine3d pose;
   geometry_msgs::Pose start_frame_pose;
   
-  shared_data()._robot->model().getPose("LSoftHand", pose);
+  shared_data()._robot->model().getPose("RSoftHand", pose);
   tf::poseEigenToMsg (pose, start_frame_pose);
     
   // define the start frame 
@@ -498,10 +518,10 @@ myfsm::Push_LH::run (double time, double period)
   end_frame.pose = start_frame_pose;
  
   trajectory_utils::Cartesian start;
-  start.distal_frame = "LSoftHand";
+  start.distal_frame = "RSoftHand";
   
   trajectory_utils::Cartesian end;
-  end.distal_frame = "LSoftHand";
+  end.distal_frame = "RSoftHand";
   
   // define the first segment
   trajectory_utils::segment s1;
@@ -520,7 +540,7 @@ myfsm::Push_LH::run (double time, double period)
     std::cout << "F end_frame.pose.position.z: " << end_frame.pose.position.z << std::endl;
     end.frame = end_frame;
     s1.type.data = 0;        // min jerk traj
-    s1.T.data = 1.0;         // traj duration 5 second      
+    s1.T.data = 2;         // traj duration 5 second      
     s1.start = start;        // start pose
     s1.end = end;            // end pose 
     segments.push_back (s1);

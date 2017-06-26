@@ -22,6 +22,7 @@
 #include <vector>
 
 #include <ros/ros.h>
+#include <std_msgs/Bool.h>
 
 #include <ADVR_ROS/advr_segment_control.h>
 
@@ -57,10 +58,17 @@ namespace myfsm{
 */
     struct SharedData
     {
+      Eigen::VectorXd  state[4];
+
       XBot::RobotInterface::Ptr _robot;
+
+      Eigen::VectorXd _q0;
       
       ros::ServiceClient _client;
       geometry_msgs::PoseStamped::ConstPtr _hose_grasp_pose;
+      
+     ros::Publisher _grasp_mag_pub;
+
       
       XBot::SubscriberRT<XBot::Command> command;
       XBot::Command current_command;
@@ -87,6 +95,8 @@ namespace myfsm{
       virtual void exit ();
 
       private:
+        double localTimer = 0;
+        double localStep = 0.001;
         
      };
  

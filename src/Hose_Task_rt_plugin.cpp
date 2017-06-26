@@ -58,6 +58,7 @@ Hose_Task::init_control_plugin (std::string path_to_config_file,
   ros::NodeHandle* node_handle = new ros::NodeHandle;
   _nh = std::shared_ptr<ros::NodeHandle>(node_handle);
   fsm.shared_data()._client = _nh->serviceClient<ADVR_ROS::advr_segment_control>("segment_control");
+  fsm.shared_data()._grasp_mag_pub = _nh->advertise<std_msgs::Bool>("/grasp/LWrMot3", 1);
 
 
   /*Saves robot as shared variable between states*/
@@ -78,10 +79,20 @@ Hose_Task::init_control_plugin (std::string path_to_config_file,
   fsm.register_state(std::make_shared<myfsm::Grasp_Fail>());
   fsm.register_state(std::make_shared<myfsm::Orient_Fail>());
   fsm.register_state(std::make_shared<myfsm::Push_Fail>());
-    
+  
+  if(!_robot->getRobotState("home", fsm.shared_data().state[0]))
+  {
+    /* If the requested configuration does not exist within the SRDF file,
+     * return false. In this case, the plugin will not be executed. */
+    std::cout <<"This gives false" << std::endl;
+    return false;
+  }
+  
+  _robot->getJointPosition(fsm.shared_data()._q0);
+
   // Initialize the FSM with the initial state
   fsm.init("Home");
-
+  
   return true;
 }
 
@@ -95,8 +106,9 @@ Hose_Task::on_start (double time)
    */
 
   /* Save the plugin starting time to a class member */
-  _robot->getMotorPosition(_q0);
-
+  //_robot->getMotorPosition(_q0);
+  _robot->getMotorPosition(fsm.shared_data()._q0);
+  
   /* Save the robot starting config to a class member */
   _start_time = time;
 }
