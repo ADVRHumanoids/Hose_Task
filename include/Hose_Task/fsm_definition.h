@@ -32,8 +32,11 @@
 #include <eigen_conversions/eigen_msg.h>
 #include <XBotCore-interfaces/XDomainCommunication.h>
 
-namespace myfsm{
+#include "int_markers_to_pose_array.h"
 
+
+namespace myfsm{
+  
 /*Example how to define a custom Event*/
 /*  class MyEvent : public XBot::FSM::Event{
 
@@ -67,11 +70,14 @@ namespace myfsm{
       ros::ServiceClient _client;
       geometry_msgs::PoseStamped::ConstPtr _hose_grasp_pose;
       
-     ros::Publisher _grasp_mag_pub;
+      ros::Publisher _grasp_mag_pub;
 
       
       XBot::SubscriberRT<XBot::Command> command;
       XBot::Command current_command;
+      
+      // Interactive markers to pose array
+      IntMarkersToPoseArray imtpa;
     };
     
     class MacroState : public  XBot::FSM::State< MacroState , SharedData >

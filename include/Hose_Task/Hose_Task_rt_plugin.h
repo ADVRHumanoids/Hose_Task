@@ -31,44 +31,46 @@
 #include <trajectory_utils/segment.h>
 #include <trajectory_utils/Cartesian.h>
 
+#include "int_markers_to_pose_array.h"
 
-namespace XBotPlugin {
 
-/** \brief Hose_Task XBot RT Plugin **/
-class Hose_Task : public XBot::XBotControlPlugin
+namespace XBotPlugin
 {
 
-  public:
+  /** \brief Hose_Task XBot RT Plugin **/
+  class Hose_Task : public XBot::XBotControlPlugin
+  {
 
-    virtual bool init_control_plugin(std::string path_to_config_file,
-                                     XBot::SharedMemory::Ptr shared_memory,
-                                     XBot::RobotInterface::Ptr robot);
+    public:
 
-    virtual bool close();
+      virtual bool init_control_plugin(std::string path_to_config_file,
+                                      XBot::SharedMemory::Ptr shared_memory,
+                                      XBot::RobotInterface::Ptr robot);
 
-    virtual void on_start(double time);
+      virtual bool close();
 
-    virtual void on_stop(double time);
+      virtual void on_start(double time);
 
-  protected:
+      virtual void on_stop(double time);
 
-    virtual void control_loop(double time, double period);
+    protected:
 
-  private:
+      virtual void control_loop(double time, double period);
 
-    XBot::RobotInterface::Ptr _robot;
+    private:
 
-    double _start_time;
+      XBot::RobotInterface::Ptr _robot;
 
-    //Eigen::VectorXd _q0;
+      double _start_time;
 
-    XBot::MatLogger::Ptr _logger;
-    
-    XBot::FSM::StateMachine< myfsm::MacroState , myfsm::SharedData > fsm;
-    
-    std::shared_ptr<ros::NodeHandle> _nh;
-};
+      //Eigen::VectorXd _q0;
 
+      XBot::MatLogger::Ptr _logger;
+      
+      XBot::FSM::StateMachine< myfsm::MacroState , myfsm::SharedData > fsm;
+      
+      std::shared_ptr<ros::NodeHandle> _nh;      
+  };
 }
 
 #endif // Hose_Task_PLUGIN_H_

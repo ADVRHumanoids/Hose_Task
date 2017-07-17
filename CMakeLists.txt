@@ -41,6 +41,8 @@ include(MacroYCMInstallLibrary)
 
 # find required packages
 find_package(XCM REQUIRED)
+find_package(catkin REQUIRED COMPONENTS visualization_msgs
+                                        interactive_markers)
 
 # XENOMAI
 set(ENABLE_XENO CACHE BOOL "ON")
@@ -55,7 +57,9 @@ include_directories(include/${PROJECT_NAME}
 
 # lib
 add_library(${PROJECT_NAME} SHARED
-    src/Hose_Task_rt_plugin.cpp src/fsm_implementation.cpp
+    src/Hose_Task_rt_plugin.cpp
+    src/fsm_implementation.cpp
+    src/int_markers_to_pose_array.cpp
 )
 
 # set Xenomain flags if Xenomai is found
@@ -64,7 +68,7 @@ if ( Xenomai_FOUND )
 endif()
 
 # linking
-target_link_libraries(${PROJECT_NAME} ${XCM_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${XCM_LIBRARIES} ${catkin_LIBRARIES})
 
 #install
 ycm_library_install(${PROJECT_NAME} 1 0 0)

@@ -1,0 +1,8 @@
+<launch>
+  <node pkg="Hose_Task"
+        name="int_markers_to_pose_array"
+        type="int_markers_to_pose_array"
+        respawn="false"
+        output="screen"
+  />
+</launch>
