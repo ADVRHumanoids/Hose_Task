@@ -33,9 +33,6 @@
 #include <eigen_conversions/eigen_msg.h>
 #include <XBotCore-interfaces/XDomainCommunication.h>
 
-#include "int_markers_to_pose_array.h"
-
-
 namespace myfsm
 {
   struct SharedData
@@ -58,8 +55,6 @@ namespace myfsm
     
     // Starting left and right hand poses
     Eigen::Affine3d sl_hand_pose, sr_hand_pose;
-    // Interactive marker to stambed pose
-    //IntMarkersToPoseArray imtpa;
   };
   
   class MacroState : public  XBot::FSM::State< MacroState , SharedData >
