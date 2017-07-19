@@ -43,18 +43,13 @@
 #include <tf/transform_listener.h>
 
 // GEOMETRY_MSGS headers
-#include <geometry_msgs/PoseArray.h>
+#include <geometry_msgs/PoseStamped.h>
 
 // Int Markers headers
-#include <interactive_markers/interactive_marker_server.h>
-#include <interactive_markers/interactive_marker_client.h>
+#include <visualization_msgs/Marker.h>
 
 class IntMarkersToPoseArray
 {
-  typedef visualization_msgs::InteractiveMarkerInitConstPtr InitConstPtr;
-  typedef visualization_msgs::InteractiveMarkerUpdateConstPtr UpdateConstPtr;
-  typedef visualization_msgs::InteractiveMarkerUpdatePtr UpdatePtr;
-
   /** \brief Subscribes to the Interactive Markers and Publishes a Pose Array.
     * 
     * \author Dimitrios Kanoulas
@@ -71,55 +66,21 @@ class IntMarkersToPoseArray
     void
     updateParams (ros::NodeHandle &nh);
     
-    /** \brief Update the values of the options. */
-    void
-    updateOpts (ros::NodeHandle &nh);
-    
     /** \brief Publish the Pose Array. */
     void
     publishPoseArray (const ros::TimerEvent&);
-          
-    /** \brief Whether to publish the set of foothold affordances. */
-    bool publish_footholds_;
+        
+    ros::Subscriber markers_sub_;
+    
+    bool publish_pose_;
     
   protected:
-    /** \brief TBD */
     void
-    initCb (const InitConstPtr& init_msg);
-    
-    /** \brief TBD */
-    void
-    updateCb (const UpdateConstPtr& up_msg);
-    
-    /** \brief TBD */
-    void
-    statusCb(interactive_markers::InteractiveMarkerClient::StatusT status,
-              const std::string& server_id,
-              const std::string& status_text);
-    
-    /** \brief TBD */
-    void
-    resetCb(const std::string& server_id);
-
-    /** \brief Republish various data topics in the loop. */
-    void
-    repubData ();
-    
-    /** \brief Reset the patch messages to int marker poses. */
-    void
-    resetPatchMsg ();
-    
-    ros::Timer publish_timer;
-    
-    //geometry_msgs::PoseArray patch_frames_msg_;
-    geometry_msgs::Pose patch_pose_msg_;
-    
+    markerCB (const visualization_msgs::Marker::ConstPtr & msg);
+            
     /** \brief Foothold patch affordances. */
     geometry_msgs::PoseStamped pp_msg_;
-    
-    /** \brief Exported foothold patch affordances vector. */
-    geometry_msgs::PoseArray pp_msg_vec_;
-    
+        
   private:
     /** \brief ROS node handler. */
     ros::NodeHandle nh;
@@ -130,26 +91,12 @@ class IntMarkersToPoseArray
     std::string GOAL_FRAME;
     
     /** \brief The range sensor frame and topic. */
-    std::string RANGE_SENSOR_FRAME, RANGE_SENSOR_TOPIC;
+    std::string RANGE_SENSOR_FRAME;
     
     /** \brief Publishers. */
-    ros::Publisher patch_pose_pub_;
-    
-    /** \brief Interactive markers server. */
-    boost::shared_ptr<interactive_markers::InteractiveMarkerServer> int_server_;
-    
-    /** \brief Interactive markers client. */
-    boost::shared_ptr<interactive_markers::InteractiveMarkerClient> im_client_;
-    
-    /** \brief Interactive markers namespace. */
+    ros::Publisher pose_stambed_pub_;
+            
+    /** \brief Markers namespace. */
     std::string topic_ns_;
-    
-    /** \brief Interactive markers frame. */
-    std::string target_frame_;
-          
-    /** \brief Transform poses. */
-    tf::TransformListener tf_, listener;
-    
-    int num_markers_;
 };
 #endif

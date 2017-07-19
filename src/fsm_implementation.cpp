@@ -22,35 +22,33 @@
 /******************************** BEGIN Home *********************************/
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Home::react (const XBot::FSM::Event& e)
-{
-  std::cout << "Home react" << std::endl;
-}
+myfsm::Home::react (const XBot::FSM::Event& e) {}
 
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Home::entry (const XBot::FSM::Message& msg)
-{
-  std::cout << "Home entry" << std::endl;
-}
+myfsm::Home::entry (const XBot::FSM::Message& msg) {}
 
 ///////////////////////////////////////////////////////////////////////////////
 void
 myfsm::Home::run (double time, double period)
 {
-  std::cout << "Home run" << std::endl;
+  //std::cout << "Home run" << std::endl;
   
   // Home the robot
   localTimer = localTimer >1 ? 1: localTimer;
    
-  shared_data()._robot->setPositionReference (shared_data()._q0+localTimer*(shared_data().state[0]-shared_data()._q0));
+  shared_data()._robot->setPositionReference
+    (shared_data()._q0+localTimer*(shared_data().state[0]-shared_data()._q0));
   shared_data()._robot->move();
   
-  if( localTimer == 1)
+  if (localTimer == 1)
   {
+    // Homing finished, so move to the ne state
     shared_data()._robot->getJointPosition(shared_data()._q0);
     localTimer = 0;
-    transit("Move_RH");
+    
+    // New state transit
+    transit ("Move_RH");
   }
   
   localTimer += localStep;
@@ -58,20 +56,7 @@ myfsm::Home::run (double time, double period)
 
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Home::exit ()
-{
-  // blocking reading: wait for a command
-  if(!shared_data().command.read(shared_data().current_command))
-    std::cout << shared_data().current_command.str() << std::endl;
-  
-  // Wait for RH_Pose, i.e. the Hose Grasp Pose (hose_grasp_pose)
-  shared_data()._hose_grasp_pose =
-    ros::topic::waitForMessage<geometry_msgs::PoseStamped>("hose_grasp_pose");
-  
-  // Debug msg
-  std::cout << shared_data()._hose_grasp_pose->pose.position.x << std::endl;
-  
-}
+myfsm::Home::exit () {}
 
 /*END Home*/
 
@@ -87,75 +72,81 @@ myfsm::Move_RH::entry (const XBot::FSM::Message& msg)
 {
   std::cout << "Move_RH entry" << std::endl;
 
-
+  // Blocking Reading: wait for a command
+  if(!shared_data().command.read(shared_data().current_command))
+    std::cout << shared_data().current_command.str() << std::endl;
+  
+  // Wait for RH_Pose, i.e. the Hose Grasp Pose (hose_grasp_pose)
+  shared_data()._hose_grasp_pose =
+    ros::topic::waitForMessage<geometry_msgs::PoseStamped>("hose_grasp_pose");
+  
+  // Debug msg
+  std::cout << shared_data()._hose_grasp_pose->pose.position.x << std::endl;
+  
+  
   // Move RH to RH_Pose (1 mid point in the z-axis fixed dist)
-
+  
   // sense and sync model
   shared_data()._robot->sense();
     
-  // define in the init of your plugin and put the client in the shared data struct
-  //ros::ServiceClient client =
-  //  shared_data()._nh->serviceClient<ADVR_ROS::advr_segment_control>("segment_control");
+  // Get current hand
+  KDL::Frame hand_pose_KDL;
+  Eigen::Affine3d hand_pose;
+  geometry_msgs::Pose start_hand_pose;
+
+  // Get hand pose
+  shared_data()._robot->model().getPose("LSoftHand", hand_pose);
+  shared_data().sl_hand_pose = hand_pose;
   
-  // Get currnt hand 
-  Eigen::Affine3d pose;
-  geometry_msgs::Pose start_frame_pose;
+  // Transform from Eigen::Affine3d to geometry_msgs::Pose
+  tf::poseEigenToMsg (hand_pose, start_hand_pose);
 
-  //shared_data()._robot->model().getPose("RSoftHand", "Waist", pose);
-  shared_data()._robot->model().getPose("LSoftHand", pose);
-  tf::poseEigenToMsg (pose, start_frame_pose);
-
-  // define the start frame 
-  geometry_msgs::PoseStamped start_frame;
-  start_frame.pose = start_frame_pose;
+  // Define the start frame as geometry_msgs::PoseStamped
+  geometry_msgs::PoseStamped start_hand_pose_stamped;
+  start_hand_pose_stamped.pose = start_hand_pose;
+  
+  // Create the Cartesian trajectories
+  trajectory_utils::Cartesian start_traj;
+  start_traj.distal_frame = "LSoftHand";
+  start_traj.frame = start_hand_pose_stamped;
   
   // define the end frame
-  geometry_msgs::PoseStamped end_frame;
-  end_frame.pose = start_frame_pose;
-
-  end_frame.pose.position.x = shared_data()._hose_grasp_pose->pose.position.x;
-  end_frame.pose.position.y = shared_data()._hose_grasp_pose->pose.position.y;
-  end_frame.pose.position.z = shared_data()._hose_grasp_pose->pose.position.z+0.1;
-    
-  end_frame.pose.orientation.x = shared_data()._hose_grasp_pose->pose.orientation.x;
-  end_frame.pose.orientation.y = shared_data()._hose_grasp_pose->pose.orientation.y;
-  end_frame.pose.orientation.z = shared_data()._hose_grasp_pose->pose.orientation.z;
-  end_frame.pose.orientation.w = shared_data()._hose_grasp_pose->pose.orientation.w;
+  geometry_msgs::PoseStamped end_hand_pose_stamped;
+  end_hand_pose_stamped.pose = start_hand_pose;
   
-  trajectory_utils::Cartesian start;
-  start.distal_frame = "LSoftHand";
-  start.frame = start_frame;
+  end_hand_pose_stamped.pose.position.x = shared_data()._hose_grasp_pose->pose.position.x;
+  end_hand_pose_stamped.pose.position.y = shared_data()._hose_grasp_pose->pose.position.y;
+  end_hand_pose_stamped.pose.position.z = shared_data()._hose_grasp_pose->pose.position.z+0.2;
+    
+  end_hand_pose_stamped.pose.orientation.x = shared_data()._hose_grasp_pose->pose.orientation.x;
+  end_hand_pose_stamped.pose.orientation.y = shared_data()._hose_grasp_pose->pose.orientation.y;
+  end_hand_pose_stamped.pose.orientation.z = shared_data()._hose_grasp_pose->pose.orientation.z;
+  end_hand_pose_stamped.pose.orientation.w = shared_data()._hose_grasp_pose->pose.orientation.w;
   
   trajectory_utils::Cartesian end;
   end.distal_frame = "LSoftHand";
-  end.frame = end_frame;
+  end.frame = end_hand_pose_stamped;
 
 
   // define the first segment
   trajectory_utils::segment s1;
   s1.type.data = 0;        // min jerk traj
-  s1.T.data = 5.0;         // traj duration 1 second      
-  s1.start = start;        // start pose
+  s1.T.data = 10.0;        // traj duration 1 second      
+  s1.start = start_traj;   // start pose
   s1.end = end;            // end pose 
 
-  start.frame = end_frame;
+  start_traj.frame = end_hand_pose_stamped;
   
-  end_frame.pose.position.x = shared_data()._hose_grasp_pose->pose.position.x;
-  end_frame.pose.position.y = shared_data()._hose_grasp_pose->pose.position.y;
-  end_frame.pose.position.z = shared_data()._hose_grasp_pose->pose.position.z;
-    
-  end_frame.pose.orientation.x = shared_data()._hose_grasp_pose->pose.orientation.x;
-  end_frame.pose.orientation.y = shared_data()._hose_grasp_pose->pose.orientation.y;
-  end_frame.pose.orientation.z = shared_data()._hose_grasp_pose->pose.orientation.z;
-  end_frame.pose.orientation.w = shared_data()._hose_grasp_pose->pose.orientation.w;
+  end_hand_pose_stamped.pose.position.z = shared_data()._hose_grasp_pose->pose.position.z;
+
   
-  end.frame = end_frame;
+  end.frame = end_hand_pose_stamped;
   
   // define the first segment
   trajectory_utils::segment s2;
   s2.type.data = 0;        // min jerk traj
-  s2.T.data = 5.0;         // traj duration 1 second      
-  s2.start = start;        // start pose
+  s2.T.data = 10.0;        // traj duration 1 second      
+  s2.start = start_traj;   // start pose
   s2.end = end;            // end pose 
   
   // only one segment in this example
@@ -165,8 +156,7 @@ myfsm::Move_RH::entry (const XBot::FSM::Message& msg)
   
   // prapere the advr_segment_control
   ADVR_ROS::advr_segment_control srv;
-  //srv.request.segment_trj.header.frame_id = "Waist";
-  srv.request.segment_trj.header.frame_id = "world";
+  srv.request.segment_trj.header.frame_id = "Waist";
   srv.request.segment_trj.header.stamp = ros::Time::now();
   srv.request.segment_trj.segments = segments;
   
@@ -182,10 +172,10 @@ myfsm::Move_RH::run (double time, double period)
   
   // Magnetise cmd
   
-  std_msgs::Bool msg;
-  msg.data = true;
-  for (int i=0; i<10; i++)
-    shared_data()._grasp_mag_pub.publish (msg);
+  //std_msgs::Bool msg;
+  //msg.data = true;
+  //for (int i=0; i<10; i++)
+  //  shared_data()._grasp_mag_pub.publish (msg);
   
   //TBD: Check if the RH has reached the hose_grasp_pose 
   
@@ -218,7 +208,26 @@ myfsm::Grasp_RH::react (const XBot::FSM::Event& e) {}
 
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Grasp_RH::entry(const XBot::FSM::Message& msg) {}
+myfsm::Grasp_RH::entry(const XBot::FSM::Message& msg)
+{
+     //r hand moving
+//     int r_hand_id =_robot->getHand()["r_handj"]->getHandId();
+//     XBot::Hand::Ptr r_hand =_robot->getHand(r_hand_id);
+//     r_hand->grasp(0);
+//     double r_state = r_hand->getGraspState();
+//     std::cout<<"R hand STATE "<<r_state<<std::endl;
+
+     //l hand moving
+//     int l_hand_id =shared_data()._robot->getHand()["l_handj"]->getHandId();
+//     XBot::Hand::Ptr l_hand =shared_data()._robot->getHand(l_hand_id);
+//     l_hand->grasp(1);
+//    
+//     shared_data()._robot->move();
+//     
+//     shared_data()._robot->sense();
+//     double l_state = l_hand->getGraspState();
+//     std::cout<<"L hand STATE "<<l_state<<std::endl;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 void
@@ -239,7 +248,10 @@ myfsm::Grasp_RH::run(double time, double period)
 
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Grasp_RH::exit () {}
+myfsm::Grasp_RH::exit ()
+{
+  std::cout << "Grasp_RH run" << std::endl;
+}
 
 /*END Grasp_RH*/
 
@@ -251,7 +263,65 @@ myfsm::Grasp_RH_Done::react (const XBot::FSM::Event& e) {}
 
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Grasp_RH_Done::entry (const XBot::FSM::Message& msg) {}
+myfsm::Grasp_RH_Done::entry (const XBot::FSM::Message& msg)
+{
+  std::cout << "Grasp_RH_Done entry" << std::endl;
+
+  // Move RH to RH_Pose
+
+  // sense and sync model
+  shared_data()._robot->sense();
+    
+  // Get current hand
+  KDL::Frame hand_pose_KDL;
+  Eigen::Affine3d hand_pose;
+  geometry_msgs::Pose start_hand_pose;
+
+  // Get hand pose
+  shared_data()._robot->model().getPose("LSoftHand", hand_pose);
+  
+  // Transform from Eigen::Affine3d to geometry_msgs::Pose
+  tf::poseEigenToMsg (hand_pose, start_hand_pose);
+
+  // Define the start frame as geometry_msgs::PoseStamped
+  geometry_msgs::PoseStamped start_hand_pose_stamped;
+  start_hand_pose_stamped.pose = start_hand_pose;
+  
+  // Create the Cartesian trajectories
+  trajectory_utils::Cartesian start_traj;
+  start_traj.distal_frame = "LSoftHand";
+  start_traj.frame = start_hand_pose_stamped;
+  
+  // define the end frame
+  geometry_msgs::PoseStamped end_hand_pose_stamped;
+  end_hand_pose_stamped.pose = start_hand_pose;
+  end_hand_pose_stamped.pose.position.z += 0.1;
+      
+  trajectory_utils::Cartesian end;
+  end.distal_frame = "LSoftHand";
+  end.frame = end_hand_pose_stamped;
+
+
+  // define the first segment
+  trajectory_utils::segment s1;
+  s1.type.data = 0;        // min jerk traj
+  s1.T.data = 5.0;        // traj duration 1 second      
+  s1.start = start_traj;   // start pose
+  s1.end = end;            // end pose   
+  
+  // only one segment in this example
+  std::vector<trajectory_utils::segment> segments;
+  segments.push_back (s1);
+  
+  // prapere the advr_segment_control
+  ADVR_ROS::advr_segment_control srv;
+  srv.request.segment_trj.header.frame_id = "Waist";
+  srv.request.segment_trj.header.stamp = ros::Time::now();
+  srv.request.segment_trj.segments = segments;
+  
+  // call the service
+  shared_data()._client.call(srv);
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 void
@@ -260,20 +330,27 @@ myfsm::Grasp_RH_Done::run (double time, double period)
   std::cout << "Grasp_RH_Done run" << std::endl;
   
   //TBD: Check if RH_Grasp or the Move_RH has failed
-  bool grasp_rh_fail = false;
-  bool move_rh_fail = false;
+
+    
+  // blocking reading: wait for a command
+  if(shared_data().command.read(shared_data().current_command))
+  {
+    std::cout << "Command: " << shared_data().current_command.str() << std::endl;
+
+    // RH Move failed
+    //bool grasp_rh_fail = false;
+    //bool move_rh_fail = false;
   
-  if (grasp_rh_fail)
-    transit("Grasp_Fail");
-  
-  if (move_rh_fail)
-    transit("Move_Fail");
-  
-  //Wait for RH_Pose (orientation + fixed position displayment)
-  //shared_data()._hose_grasp_pose =
-  //  ros::topic::waitForMessage<geometry_msgs::PoseStamped>("hose_grasp_pose");
-  
-  transit("Orient_RH");
+    //if (grasp_rh_fail)
+    //  transit("Grasp_Fail");
+    
+    //if (move_rh_fail)
+    //  transit("Move_Fail");
+    
+    // RH Move Succeeded
+    if (!shared_data().current_command.str().compare("success"))
+      transit("Orient_RH");
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -290,7 +367,74 @@ myfsm::Orient_RH::react (const XBot::FSM::Event& e) {}
 
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Orient_RH::entry (const XBot::FSM::Message& msg) {}
+myfsm::Orient_RH::entry (const XBot::FSM::Message& msg)
+{
+  std::cout << "Orient_RH entry" << std::endl;
+
+  
+  //Wait for RH_Pose (orientation)
+  shared_data()._hose_grasp_pose =
+    ros::topic::waitForMessage<geometry_msgs::PoseStamped>("hose_grasp_pose");
+  
+  // Move RH to RH_Pose
+  
+  // sense and sync model
+  shared_data()._robot->sense();
+    
+  // Get current hand
+  KDL::Frame hand_pose_KDL;
+  Eigen::Affine3d hand_pose;
+  geometry_msgs::Pose start_hand_pose;
+
+  // Get hand pose
+  shared_data()._robot->model().getPose("LSoftHand", hand_pose);
+  
+  // Transform from Eigen::Affine3d to geometry_msgs::Pose
+  tf::poseEigenToMsg (hand_pose, start_hand_pose);
+
+  // Define the start frame as geometry_msgs::PoseStamped
+  geometry_msgs::PoseStamped start_hand_pose_stamped;
+  start_hand_pose_stamped.pose = start_hand_pose;
+  
+  // Create the Cartesian trajectories
+  trajectory_utils::Cartesian start_traj;
+  start_traj.distal_frame = "LSoftHand";
+  start_traj.frame = start_hand_pose_stamped;
+  
+  // define the end frame
+  geometry_msgs::PoseStamped end_hand_pose_stamped;
+  end_hand_pose_stamped.pose = start_hand_pose;
+      
+  end_hand_pose_stamped.pose.orientation.x = shared_data()._hose_grasp_pose->pose.orientation.x;
+  end_hand_pose_stamped.pose.orientation.y = shared_data()._hose_grasp_pose->pose.orientation.y;
+  end_hand_pose_stamped.pose.orientation.z = shared_data()._hose_grasp_pose->pose.orientation.z;
+  end_hand_pose_stamped.pose.orientation.w = shared_data()._hose_grasp_pose->pose.orientation.w;
+  
+  trajectory_utils::Cartesian end;
+  end.distal_frame = "LSoftHand";
+  end.frame = end_hand_pose_stamped;
+
+
+  // define the first segment
+  trajectory_utils::segment s1;
+  s1.type.data = 0;        // min jerk traj
+  s1.T.data = 10.0;        // traj duration 1 second      
+  s1.start = start_traj;   // start pose
+  s1.end = end;            // end pose   
+  
+  // only one segment in this example
+  std::vector<trajectory_utils::segment> segments;
+  segments.push_back (s1);
+  
+  // prapere the advr_segment_control
+  ADVR_ROS::advr_segment_control srv;
+  srv.request.segment_trj.header.frame_id = "Waist";
+  srv.request.segment_trj.header.stamp = ros::Time::now();
+  srv.request.segment_trj.segments = segments;
+  
+  // call the service
+  shared_data()._client.call(srv);
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 void
@@ -299,8 +443,15 @@ myfsm::Orient_RH::run(double time, double period)
   std::cout << "Orient_RH run" << std::endl;
   
   //TBD: Move RH to RH_Pose
-  
-  transit("Orient_RH_Done");
+  // blocking reading: wait for a command
+  if(shared_data().command.read(shared_data().current_command))
+  {
+    std::cout << "Command: " << shared_data().current_command.str() << std::endl;
+    
+    // RH Move Succeeded
+    if (!shared_data().current_command.str().compare("success"))
+      transit("Orient_RH_Done");
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -333,7 +484,8 @@ myfsm::Orient_RH_Done::run (double time, double period)
   
   //TBD: Wait LH_Pose
   shared_data()._hose_grasp_pose =
-    ros::topic::waitForMessage<geometry_msgs::PoseStamped>("hose_push_pose");
+    ros::topic::waitForMessage<geometry_msgs::PoseStamped>("hose_grasp_pose");
+    //ros::topic::waitForMessage<geometry_msgs::PoseStamped>("hose_push_pose");
   
   transit("Move_LH");
 }
@@ -354,20 +506,18 @@ myfsm::Move_LH::react (const XBot::FSM::Event& e) {}
 void
 myfsm::Move_LH::entry (const XBot::FSM::Message& msg)
 {
-// sense and sync model
+  // sense and sync model
   shared_data()._robot->sense();
     
-  // define in the init of your plugin and put the client in the shared data struct
-  //ros::ServiceClient client =
-  //  shared_data()._nh->serviceClient<ADVR_ROS::advr_segment_control>("segment_control");
-  
   // Get currnt hand 
-  Eigen::Affine3d pose;
+  Eigen::Affine3d hand_pose;
   geometry_msgs::Pose start_frame_pose;
   
-  //shared_data()._robot->model().getPose("RSoftHand", "Waist", pose);
-  shared_data()._robot->model().getPose("RSoftHand", pose);
-  tf::poseEigenToMsg (pose, start_frame_pose);
+  //shared_data()._robot->model().getPose("RSoftHand", "Waist", hand_pose);
+  shared_data()._robot->model().getPose("RSoftHand", hand_pose);
+  shared_data().sr_hand_pose = hand_pose;
+
+  tf::poseEigenToMsg (hand_pose, start_frame_pose);
   
   //tf::Quaternion q (start_frame_pose.orientation.x,
   //                  start_frame_pose.orientation.y,
@@ -413,8 +563,8 @@ myfsm::Move_LH::entry (const XBot::FSM::Message& msg)
   
   // prapere the advr_segment_control
   ADVR_ROS::advr_segment_control srv;
-  //srv.request.segment_trj.header.frame_id = "Waist";
-  srv.request.segment_trj.header.frame_id = "world";
+  srv.request.segment_trj.header.frame_id = "Waist";
+  //srv.request.segment_trj.header.frame_id = "world";
   srv.request.segment_trj.header.stamp = ros::Time::now();
   srv.request.segment_trj.segments = segments;
   
@@ -513,8 +663,8 @@ myfsm::Push_LH::run (double time, double period)
   
   // prapere the advr_segment_control
   ADVR_ROS::advr_segment_control srv;
-  //srv.request.segment_trj.header.frame_id = "Waist";
-  srv.request.segment_trj.header.frame_id = "world";
+  srv.request.segment_trj.header.frame_id = "Waist";
+  //srv.request.segment_trj.header.frame_id = "world";
   srv.request.segment_trj.header.stamp = ros::Time::now();
   srv.request.segment_trj.segments = segments;
   
@@ -579,6 +729,124 @@ void
 myfsm::Homing::entry (const XBot::FSM::Message& msg)
 {
   std::cout << "Homing entry" << std::endl;
+  
+  // Ungrasp left and right hands
+  
+  // Home both hands
+// sense and sync model
+  shared_data()._robot->sense();
+    
+  // Get current hand
+  KDL::Frame hand_pose_KDL;
+  Eigen::Affine3d hand_pose;
+  geometry_msgs::Pose start_hand_pose;
+
+  // Get hand pose
+  shared_data()._robot->model().getPose("LSoftHand", hand_pose);
+  
+  // Transform from Eigen::Affine3d to geometry_msgs::Pose
+  tf::poseEigenToMsg (hand_pose, start_hand_pose);
+
+  // Define the start frame as geometry_msgs::PoseStamped
+  geometry_msgs::PoseStamped start_hand_pose_stamped;
+  start_hand_pose_stamped.pose = start_hand_pose;
+  
+  // Create the Cartesian trajectories
+  trajectory_utils::Cartesian start_traj;
+  start_traj.distal_frame = "LSoftHand";
+  start_traj.frame = start_hand_pose_stamped;
+  
+  // define the end frame
+  geometry_msgs::PoseStamped end_hand_pose_stamped;
+  tf::poseEigenToMsg (shared_data().sl_hand_pose, end_hand_pose_stamped.pose);
+
+  
+  trajectory_utils::Cartesian end;
+  end.distal_frame = "LSoftHand";
+  end.frame = end_hand_pose_stamped;
+
+
+  // define the first segment
+  trajectory_utils::segment s1;
+  s1.type.data = 0;        // min jerk traj
+  s1.T.data = 5.0;        // traj duration 1 second      
+  s1.start = start_traj;   // start pose
+  s1.end = end;            // end pose
+  
+  // only one segment in this example
+  std::vector<trajectory_utils::segment> segments;
+  segments.push_back (s1);
+  
+  // prapere the advr_segment_control
+  ADVR_ROS::advr_segment_control srv;
+  srv.request.segment_trj.header.frame_id = "Waist";
+  srv.request.segment_trj.header.stamp = ros::Time::now();
+  srv.request.segment_trj.segments = segments;
+  
+  // call the service
+  shared_data()._client.call(srv);
+  
+  if(shared_data().command.read(shared_data().current_command))
+  {
+    std::cout << "Command: " << shared_data().current_command.str() << std::endl;
+  
+  if (!shared_data().current_command.str().compare("success"))
+  {
+  
+  // Home right hand
+  shared_data()._robot->sense();
+    
+  // Get current hand
+  KDL::Frame hand_pose_KDL_r;
+  Eigen::Affine3d hand_pose_r;
+  geometry_msgs::Pose start_hand_pose_r;
+
+  // Get hand pose
+  shared_data()._robot->model().getPose("RSoftHand", hand_pose_r);
+  
+  // Transform from Eigen::Affine3d to geometry_msgs::Pose
+  tf::poseEigenToMsg (hand_pose_r, start_hand_pose_r);
+
+  // Define the start frame as geometry_msgs::PoseStamped
+  geometry_msgs::PoseStamped start_hand_pose_stamped_r;
+  start_hand_pose_stamped_r.pose = start_hand_pose_r;
+  
+  // Create the Cartesian trajectories
+  trajectory_utils::Cartesian start_traj_r;
+  start_traj_r.distal_frame = "RSoftHand";
+  start_traj_r.frame = start_hand_pose_stamped_r;
+  
+  // define the end frame
+  geometry_msgs::PoseStamped end_hand_pose_stamped_r;
+  tf::poseEigenToMsg (shared_data().sr_hand_pose, end_hand_pose_stamped_r.pose);
+
+  
+  trajectory_utils::Cartesian end_r;
+  end_r.distal_frame = "RSoftHand";
+  end_r.frame = end_hand_pose_stamped_r;
+
+
+  // define the first segment
+  trajectory_utils::segment s_r;
+  s_r.type.data = 0;        // min jerk traj
+  s_r.T.data = 5.0;         // traj duration 1 second      
+  s_r.start = start_traj_r; // start pose
+  s_r.end = end_r;          // end pose
+  
+  // only one segment in this example
+  std::vector<trajectory_utils::segment> segments_r;
+  segments_r.push_back (s_r);
+  
+  // prapere the advr_segment_control
+  ADVR_ROS::advr_segment_control srv_r;
+  srv_r.request.segment_trj.header.frame_id = "Waist";
+  srv_r.request.segment_trj.header.stamp = ros::Time::now();
+  srv_r.request.segment_trj.segments = segments_r;
+  
+  // call the service
+  shared_data()._client.call (srv_r);
+  }
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////

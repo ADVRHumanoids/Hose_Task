@@ -47,165 +47,44 @@ IntMarkersToPoseArray::IntMarkersToPoseArray (int argc, char **argv)
   double publish_rate = 30;
       
   // subscribers
-  target_frame_ = nh.resolveName(RANGE_SENSOR_FRAME);
-  topic_ns_ = nh.resolveName("extinguisher_server");
-  
-  int_server_.reset (new interactive_markers::InteractiveMarkerServer ("new_foot_marker","",false));
-  
-  im_client_.reset (new interactive_markers::InteractiveMarkerClient(tf_,
-                                                                      target_frame_,
-                                                                      topic_ns_));
-  im_client_->setInitCb(boost::bind(&IntMarkersToPoseArray::initCb, this, _1));
-  im_client_->setUpdateCb(boost::bind(&IntMarkersToPoseArray::updateCb, this, _1));
-  im_client_->setResetCb(boost::bind(&IntMarkersToPoseArray::resetCb, this, _1));
-  im_client_->setStatusCb(boost::bind(&IntMarkersToPoseArray::statusCb, this, _1, _2, _3));
-  im_client_->subscribe(topic_ns_);
-  
+  topic_ns_ = nh.resolveName("extinguisher_client");
+    
   // publishers
-  patch_pose_pub_ = nh.advertise<geometry_msgs::PoseArray>("hose_grasp_pose", 1);
-  
-  publish_timer = nh.createTimer(ros::Duration(1/publish_rate),
-                                 &IntMarkersToPoseArray::publishPoseArray, this);
+  pose_stambed_pub_ = nh.advertise<geometry_msgs::PoseStamped>("hose_grasp_pose", 1);
+    
+  markers_sub_ = nh.subscribe<visualization_msgs::Marker>
+    (topic_ns_, 10, boost::bind(&IntMarkersToPoseArray::markerCB, this, _1));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 void
 IntMarkersToPoseArray::initParams ()
 {
-  this->GOAL_FRAME = "/camera_rgb_optical_frame";
-  this->RANGE_SENSOR_FRAME = "/camera_rgb_optical_frame";
-  this->RANGE_SENSOR_TOPIC = "/camera/depth_registered/points";
-      
-  // options
-  publish_footholds_ = false;
+  this->GOAL_FRAME = "/base_link";
+  this->RANGE_SENSOR_FRAME = "/base_link";
+  this->publish_pose_ = false;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 void
 IntMarkersToPoseArray::updateParams (ros::NodeHandle &nh)
 {
-  nh.getParam("/footstep_patch/GOAL_FRAME", this->GOAL_FRAME);
-  nh.getParam("/footstep_patch/RANGE_SENSOR_FRAME", this->RANGE_SENSOR_FRAME);
-  nh.getParam("/footstep_patch/RANGE_SENSOR_TOPIC", this->RANGE_SENSOR_TOPIC);
+  nh.getParam("/Hose_Task/GOAL_FRAME", this->GOAL_FRAME);
+  nh.getParam("/Hose_Task/RANGE_SENSOR_FRAME", this->RANGE_SENSOR_FRAME);
+  nh.getParam("/Hose_Task/publish_pose_", this->publish_pose_);
 }
 
-////////////////////////////////////////////////////////////////////////////////
 void
-IntMarkersToPoseArray::updateOpts (ros::NodeHandle &nh)
+IntMarkersToPoseArray::markerCB (const visualization_msgs::Marker::ConstPtr & msg)
 {
-  nh.getParam("/footstep_patch/publish_footholds_", this->publish_footholds_);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-void
-IntMarkersToPoseArray::initCb (const InitConstPtr& init_msg)
-{
-  std::cout << "Hey you" << std::endl;
-  num_markers_ = init_msg->markers.size();
-  
-  UpdatePtr update (new visualization_msgs::InteractiveMarkerUpdate ());
-  update->markers = init_msg->markers;
-  update->seq_num = init_msg->seq_num;
-  update->server_id = init_msg->server_id;
-      
-  visualization_msgs::InteractiveMarker im;
-  for (int i=0; i<num_markers_; i++)
-    int_server_->insert (update->markers[i]);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-void
-IntMarkersToPoseArray::updateCb (const UpdateConstPtr& up_msg)
-{
-}
-
-////////////////////////////////////////////////////////////////////////////////
-void
-IntMarkersToPoseArray::statusCb (interactive_markers::InteractiveMarkerClient::StatusT status,
-                                  const std::string& server_id,
-                                  const std::string& status_text)
-{
-}
-
-////////////////////////////////////////////////////////////////////////////////
-void
-IntMarkersToPoseArray::resetCb(const std::string& server_id)
-{
-}
-
-////////////////////////////////////////////////////////////////////////////////
-void
-IntMarkersToPoseArray::repubData ()
-{    
-  // Republish topics
-  if (publish_footholds_)
+  std::cout << "markerCB" << std::endl;
+  if (publish_pose_)
   {
-    std::cout << "Publish footholds" << std::endl;
-    resetPatchMsg ();
-    patch_pose_pub_.publish (pp_msg_vec_);
-    nh.setParam("footstep_patch/publish_footholds_", false);
-  }
-}
-
-////////////////////////////////////////////////////////////////////////////////
-void
-IntMarkersToPoseArray::resetPatchMsg ()
-{
-  pp_msg_vec_.poses.clear();
-  visualization_msgs::InteractiveMarker im;
-  
-  for (int i=0; i<num_markers_; i++)
-  {
-    std::stringstream ss;
-    ss << i;
-    int_server_->get("my_marker" + ss.str(),im);
-    patch_pose_msg_ = im.pose;
-    
-    // Create the PoseStamped msg
-    pp_msg_.header.frame_id = RANGE_SENSOR_FRAME;
+    pp_msg_.header.frame_id = this->GOAL_FRAME;
     pp_msg_.header.stamp = ros::Time(0);
-    pp_msg_.pose.orientation = patch_pose_msg_.orientation;
-    pp_msg_.pose.position = patch_pose_msg_.position;
-    
-    // transform the patch in the correct frame
-    try
-    {
-      listener.transformPose (GOAL_FRAME, pp_msg_, pp_msg_);
-      pp_msg_.header.frame_id = GOAL_FRAME;
-      pp_msg_.header.stamp = ros::Time(0);
-      patch_pose_msg_.orientation = pp_msg_.pose.orientation;
-      patch_pose_msg_.position = pp_msg_.pose.position;
-      
-      pp_msg_vec_.header.frame_id = pp_msg_.header.frame_id;
-      pp_msg_vec_.poses.push_back (patch_pose_msg_);
-    }
-    catch (tf::TransformException& ex)
-    {
-      ROS_ERROR("No transformation available: %s", ex.what());
-    }
+    pp_msg_.pose.orientation = msg->pose.orientation;
+    pp_msg_.pose.position = msg->pose.position;
+
+    pose_stambed_pub_.publish (pp_msg_);
   }
 }
-
-////////////////////////////////////////////////////////////////////////////////
-void
-IntMarkersToPoseArray::publishPoseArray (const ros::TimerEvent&)
-{    
-  updateOpts (nh);
-  repubData ();
-  
-  im_client_->update ();
-  int_server_->applyChanges();
-}
-
-/*
-int
-main (int argc, char** argv)
-{
-  ros::init (argc, argv, "int_markers_to_pose_array");
-  
-  IntMarkersToPoseArray imtpa;
-  
-  ros::spin ();
-  
-  return 0;
-}*/
