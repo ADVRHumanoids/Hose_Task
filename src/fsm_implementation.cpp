@@ -18,6 +18,8 @@
  */
 
 #include "fsm_definition.h"
+#include <string>
+#include <eigen_conversions/eigen_msg.h>
 
 /******************************** BEGIN Home *********************************/
 ///////////////////////////////////////////////////////////////////////////////
@@ -75,20 +77,26 @@ myfsm::Move_RH::entry (const XBot::FSM::Message& msg)
   // Blocking Reading: wait for a command
   if(!shared_data().command.read(shared_data().current_command))
     std::cout << shared_data().current_command.str() << std::endl;
-  
+
   // Wait for RH_Pose, i.e. the Hose Grasp Pose (hose_grasp_pose)
   shared_data()._hose_grasp_pose =
     ros::topic::waitForMessage<geometry_msgs::PoseStamped>("hose_grasp_pose");
-  
+
   // Debug msg
   std::cout << shared_data()._hose_grasp_pose->pose.position.x << std::endl;
-  
-  
+
+
   // Move RH to RH_Pose (1 mid point in the z-axis fixed dist)
-  
+
   // sense and sync model
   shared_data()._robot->sense();
-    
+  Eigen::Affine3d world_T_bl;
+  std::string fb;
+  shared_data()._robot->model().getFloatingBaseLink(fb);
+  tf.getTransformTf(fb, "world_odom", world_T_bl);
+  shared_data()._robot->model().setFloatingBasePose(world_T_bl);
+  shared_data()._robot->model().update();
+
   // Get current hand
   KDL::Frame hand_pose_KDL;
   Eigen::Affine3d hand_pose;
@@ -156,7 +164,7 @@ myfsm::Move_RH::entry (const XBot::FSM::Message& msg)
   
   // prapere the advr_segment_control
   ADVR_ROS::advr_segment_control srv;
-  srv.request.segment_trj.header.frame_id = "Waist";
+  srv.request.segment_trj.header.frame_id = "world_odom";
   srv.request.segment_trj.header.stamp = ros::Time::now();
   srv.request.segment_trj.segments = segments;
   
@@ -271,7 +279,13 @@ myfsm::Grasp_RH_Done::entry (const XBot::FSM::Message& msg)
 
   // sense and sync model
   shared_data()._robot->sense();
-    
+  Eigen::Affine3d world_T_bl;
+  std::string fb;
+  shared_data()._robot->model().getFloatingBaseLink(fb);
+  tf.getTransformTf(fb, "world_odom", world_T_bl);
+  shared_data()._robot->model().setFloatingBasePose(world_T_bl);
+  shared_data()._robot->model().update();
+
   // Get current hand
   KDL::Frame hand_pose_KDL;
   Eigen::Affine3d hand_pose;
@@ -315,7 +329,7 @@ myfsm::Grasp_RH_Done::entry (const XBot::FSM::Message& msg)
   
   // prapere the advr_segment_control
   ADVR_ROS::advr_segment_control srv;
-  srv.request.segment_trj.header.frame_id = "Waist";
+  srv.request.segment_trj.header.frame_id = "world_odom";
   srv.request.segment_trj.header.stamp = ros::Time::now();
   srv.request.segment_trj.segments = segments;
   
@@ -371,16 +385,21 @@ myfsm::Orient_RH::entry (const XBot::FSM::Message& msg)
 {
   std::cout << "Orient_RH entry" << std::endl;
 
-  
   //Wait for RH_Pose (orientation)
   shared_data()._hose_grasp_pose =
     ros::topic::waitForMessage<geometry_msgs::PoseStamped>("hose_grasp_pose");
-  
+
   // Move RH to RH_Pose
-  
+
   // sense and sync model
   shared_data()._robot->sense();
-    
+  Eigen::Affine3d world_T_bl;
+  std::string fb;
+  shared_data()._robot->model().getFloatingBaseLink(fb);
+  tf.getTransformTf(fb, "world_odom", world_T_bl);
+  shared_data()._robot->model().setFloatingBasePose(world_T_bl);
+  shared_data()._robot->model().update();
+
   // Get current hand
   KDL::Frame hand_pose_KDL;
   Eigen::Affine3d hand_pose;
@@ -428,7 +447,7 @@ myfsm::Orient_RH::entry (const XBot::FSM::Message& msg)
   
   // prapere the advr_segment_control
   ADVR_ROS::advr_segment_control srv;
-  srv.request.segment_trj.header.frame_id = "Waist";
+  srv.request.segment_trj.header.frame_id = "world_odom";
   srv.request.segment_trj.header.stamp = ros::Time::now();
   srv.request.segment_trj.segments = segments;
   
@@ -508,13 +527,19 @@ myfsm::Move_LH::entry (const XBot::FSM::Message& msg)
 {
   // sense and sync model
   shared_data()._robot->sense();
-    
+  Eigen::Affine3d world_T_bl;
+  std::string fb;
+  shared_data()._robot->model().getFloatingBaseLink(fb);
+  tf.getTransformTf(fb, "world_odom", world_T_bl);
+  shared_data()._robot->model().setFloatingBasePose(world_T_bl);
+  shared_data()._robot->model().update();
+
   // Get currnt hand 
   Eigen::Affine3d hand_pose;
   geometry_msgs::Pose start_frame_pose;
   
-  //shared_data()._robot->model().getPose("RSoftHand", "Waist", hand_pose);
-  shared_data()._robot->model().getPose("RSoftHand", hand_pose);
+  shared_data()._robot->model().getPose("RSoftHand", "world_odom", hand_pose);
+  //shared_data()._robot->model().getPose("RSoftHand", hand_pose);
   shared_data().sr_hand_pose = hand_pose;
 
   tf::poseEigenToMsg (hand_pose, start_frame_pose);
@@ -563,7 +588,7 @@ myfsm::Move_LH::entry (const XBot::FSM::Message& msg)
   
   // prapere the advr_segment_control
   ADVR_ROS::advr_segment_control srv;
-  srv.request.segment_trj.header.frame_id = "Waist";
+  srv.request.segment_trj.header.frame_id = "world_odom";
   //srv.request.segment_trj.header.frame_id = "world";
   srv.request.segment_trj.header.stamp = ros::Time::now();
   srv.request.segment_trj.segments = segments;
@@ -616,7 +641,13 @@ myfsm::Push_LH::run (double time, double period)
 
   // sense and sync model
   shared_data()._robot->sense();
-    
+  Eigen::Affine3d world_T_bl;
+  std::string fb;
+  shared_data()._robot->model().getFloatingBaseLink(fb);
+  tf.getTransformTf(fb, "world_odom", world_T_bl);
+  shared_data()._robot->model().setFloatingBasePose(world_T_bl);
+  shared_data()._robot->model().update();
+
   // Get currnt hand 
   Eigen::Affine3d pose;
   geometry_msgs::Pose start_frame_pose;
@@ -663,7 +694,7 @@ myfsm::Push_LH::run (double time, double period)
   
   // prapere the advr_segment_control
   ADVR_ROS::advr_segment_control srv;
-  srv.request.segment_trj.header.frame_id = "Waist";
+  srv.request.segment_trj.header.frame_id = "world_odom";
   //srv.request.segment_trj.header.frame_id = "world";
   srv.request.segment_trj.header.stamp = ros::Time::now();
   srv.request.segment_trj.segments = segments;
@@ -729,13 +760,19 @@ void
 myfsm::Homing::entry (const XBot::FSM::Message& msg)
 {
   std::cout << "Homing entry" << std::endl;
-  
+
   // Ungrasp left and right hands
-  
+
   // Home both hands
-// sense and sync model
+  // sense and sync model
   shared_data()._robot->sense();
-    
+  Eigen::Affine3d world_T_bl;
+  std::string fb;
+  shared_data()._robot->model().getFloatingBaseLink(fb);
+  tf.getTransformTf(fb, "world_odom", world_T_bl);
+  shared_data()._robot->model().setFloatingBasePose(world_T_bl);
+  shared_data()._robot->model().update();
+
   // Get current hand
   KDL::Frame hand_pose_KDL;
   Eigen::Affine3d hand_pose;
@@ -779,7 +816,7 @@ myfsm::Homing::entry (const XBot::FSM::Message& msg)
   
   // prapere the advr_segment_control
   ADVR_ROS::advr_segment_control srv;
-  srv.request.segment_trj.header.frame_id = "Waist";
+  srv.request.segment_trj.header.frame_id = "world_odom";
   srv.request.segment_trj.header.stamp = ros::Time::now();
   srv.request.segment_trj.segments = segments;
   
@@ -795,7 +832,13 @@ myfsm::Homing::entry (const XBot::FSM::Message& msg)
   
   // Home right hand
   shared_data()._robot->sense();
-    
+  Eigen::Affine3d world_T_bl;
+  std::string fb;
+  shared_data()._robot->model().getFloatingBaseLink(fb);
+  tf.getTransformTf(fb, "world_odom", world_T_bl);
+  shared_data()._robot->model().setFloatingBasePose(world_T_bl);
+  shared_data()._robot->model().update();
+
   // Get current hand
   KDL::Frame hand_pose_KDL_r;
   Eigen::Affine3d hand_pose_r;
@@ -839,7 +882,7 @@ myfsm::Homing::entry (const XBot::FSM::Message& msg)
   
   // prapere the advr_segment_control
   ADVR_ROS::advr_segment_control srv_r;
-  srv_r.request.segment_trj.header.frame_id = "Waist";
+  srv_r.request.segment_trj.header.frame_id = "world_odom";
   srv_r.request.segment_trj.header.stamp = ros::Time::now();
   srv_r.request.segment_trj.segments = segments_r;
   

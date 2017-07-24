@@ -33,8 +33,50 @@
 #include <eigen_conversions/eigen_msg.h>
 #include <XBotCore-interfaces/XDomainCommunication.h>
 
+#include <tf/transform_listener.h>
+#include <Eigen/Dense>
+
 namespace myfsm
 {
+  class tfHandler
+  {
+    public:
+      tfHandler():
+      _listener(), _gm_transform(), _transform()
+      {}
+
+      /** \brief TBD. */
+      bool
+      getTransformTf (const std::string& parent,
+                      const std::string& child,
+                      Eigen::Affine3d& world_T_bl)
+      {
+        try
+        {
+          ros::Time now = ros::Time::now();
+          //if(_listener.waitForTransform(child, parent, now, ros::Duration(5.0)))
+          //{
+          _listener.lookupTransform(child, parent,  ros::Time(0), _transform);
+          tf::transformTFToMsg(_transform, _gm_transform);
+          tf::transformMsgToEigen(_gm_transform, world_T_bl);
+          return true;
+          //}
+          //else
+          //  return false;
+        }
+        catch (tf::TransformException ex)
+        {
+          ROS_ERROR("%s",ex.what());
+          return false;
+        }
+      }
+
+    private:
+     tf::TransformListener _listener;
+     geometry_msgs::Transform _gm_transform;
+     tf::StampedTransform _transform;
+    };
+
   struct SharedData
   {
     Eigen::VectorXd  state[4];
@@ -42,27 +84,28 @@ namespace myfsm
     XBot::RobotInterface::Ptr _robot;
 
     Eigen::VectorXd _q0;
-    
+
     ros::ServiceClient _client;
     geometry_msgs::PoseStamped::ConstPtr _hose_grasp_pose;
-    
+
     // Grasping publisher
     ros::Publisher _grasp_mag_pub;
 
     // Input commands
     XBot::SubscriberRT<XBot::Command> command;
     XBot::Command current_command;
-    
+
     // Starting left and right hand poses
     Eigen::Affine3d sl_hand_pose, sr_hand_pose;
   };
-  
+
   class MacroState : public  XBot::FSM::State< MacroState , SharedData >
   {
     public:
       virtual void entry(const XBot::FSM::Message& msg) {};
       virtual void react(const XBot::FSM::Event& e){};
-  };  
+      tfHandler tf;
+  };
 
   /** \brief This class state is about homing the robot. */
   class Home : public MacroState
