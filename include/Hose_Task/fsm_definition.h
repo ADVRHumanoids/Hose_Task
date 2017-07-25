@@ -101,200 +101,208 @@ namespace myfsm
     // For saving the last poses of left and right hands
     geometry_msgs::PoseStamped::ConstPtr _last_lh_pose;
     geometry_msgs::PoseStamped::ConstPtr _last_rh_pose;
+
+    // Command string for reading poses
+    std::string pose_cmd_ = "hose_grasp_pose";
+    
+    // Working frame id
+    std::string frame_id_ = "world_odom";
+
+    // Whether to home the robot in the Home state
+    bool do_home_ = 0;
   };
 
-  class MacroState : public  XBot::FSM::State< MacroState , SharedData >
+  class MacroState: public XBot::FSM::State <MacroState, SharedData>
   {
     public:
       virtual void entry(const XBot::FSM::Message& msg) {};
-      virtual void react(const XBot::FSM::Event& e){};
+      virtual void react(const XBot::FSM::Event& e) {};
       tfHandler tf;
   };
 
   /** \brief This class state is about homing the robot. */
-  class Home : public MacroState
+  class Home: public MacroState
   {
-    virtual std::string get_name() const { return "Home"; }
+    virtual std::string get_name () const {return "Home";}
 
-    virtual void run(double time, double period);
+    virtual void run (double time, double period);
 
-    virtual void entry(const XBot::FSM::Message& msg);
+    virtual void entry (const XBot::FSM::Message& msg);
 
-    virtual void react(const XBot::FSM::Event& e);
+    virtual void react (const XBot::FSM::Event& e);
 
     virtual void exit ();
 
     private:
       double localTimer = 0;
-      double localStep = 0.001;  
+      double localStep = 0.001;
   };
 
-  class Move_RH : public MacroState
+  class Move_LH: public MacroState
   {
-    virtual std::string get_name() const { return "Move_RH"; }
+    virtual std::string get_name () const {return "Move_LH";}
 
-    virtual void run(double time, double period);
+    virtual void run (double time, double period);
 
-    virtual void entry(const XBot::FSM::Message& msg);
+    virtual void entry (const XBot::FSM::Message& msg);
 
-    virtual void react(const XBot::FSM::Event& e);
+    virtual void react (const XBot::FSM::Event& e);
 
     virtual void exit ();
   };
 
-  class Grasp_RH : public MacroState
+  class Grasp_LH: public MacroState
   {
-    virtual std::string get_name() const { return "Grasp_RH"; }
+    virtual std::string get_name () const {return "Grasp_LH";}
 
-    virtual void run(double time, double period);
+    virtual void run (double time, double period);
 
-    virtual void entry(const XBot::FSM::Message& msg);
+    virtual void entry (const XBot::FSM::Message& msg);
 
-    virtual void react(const XBot::FSM::Event& e);
+    virtual void react (const XBot::FSM::Event& e);
 
     virtual void exit ();
   };
 
-  class Grasp_RH_Done : public MacroState
+  class Grasp_LH_Done: public MacroState
   {
-    virtual std::string get_name() const { return "Grasp_RH_Done"; }
+    virtual std::string get_name () const {return "Grasp_LH_Done";}
 
-    virtual void run(double time, double period);
+    virtual void run (double time, double period);
 
-    virtual void entry(const XBot::FSM::Message& msg);
+    virtual void entry (const XBot::FSM::Message& msg);
 
-    virtual void react(const XBot::FSM::Event& e);
+    virtual void react (const XBot::FSM::Event& e);
 
     virtual void exit ();
   };
 
-  class Orient_RH : public MacroState
+  class Orient_LH: public MacroState
   {
-    virtual std::string get_name() const { return "Orient_RH"; }
+    virtual std::string get_name () const {return "Orient_LH";}
 
-    virtual void run(double time, double period);
+    virtual void run (double time, double period);
 
-    virtual void entry(const XBot::FSM::Message& msg);
+    virtual void entry (const XBot::FSM::Message& msg);
 
-    virtual void react(const XBot::FSM::Event& e);
+    virtual void react (const XBot::FSM::Event& e);
 
     virtual void exit ();
   };
 
-  class Orient_RH_Done : public MacroState
+  class Orient_LH_Done: public MacroState
   {
-    virtual std::string get_name() const { return "Orient_RH_Done"; }
+    virtual std::string get_name () const {return "Orient_LH_Done";}
 
-    virtual void run(double time, double period);
+    virtual void run (double time, double period);
 
-    virtual void entry(const XBot::FSM::Message& msg);
+    virtual void entry (const XBot::FSM::Message& msg);
 
-    virtual void react(const XBot::FSM::Event& e);
+    virtual void react (const XBot::FSM::Event& e);
 
     virtual void exit ();
   };
 
-  class Move_LH : public MacroState
+  class Move_RH: public MacroState
   {
-    virtual std::string get_name() const { return "Move_LH"; }
+    virtual std::string get_name () const {return "Move_RH";}
 
-    virtual void run(double time, double period);
+    virtual void run (double time, double period);
 
-    virtual void entry(const XBot::FSM::Message& msg);
+    virtual void entry (const XBot::FSM::Message& msg);
 
-    virtual void react(const XBot::FSM::Event& e);
+    virtual void react (const XBot::FSM::Event& e);
 
     virtual void exit ();
   };
 
-  class Push_LH : public MacroState
+  class Push_RH: public MacroState
   {
-    virtual std::string get_name() const { return "Push_LH"; }
+    virtual std::string get_name () const {return "Push_RH";}
 
-    virtual void run(double time, double period);
+    virtual void run (double time, double period);
 
-    virtual void entry(const XBot::FSM::Message& msg);
+    virtual void entry (const XBot::FSM::Message& msg);
 
-    virtual void react(const XBot::FSM::Event& e);
+    virtual void react (const XBot::FSM::Event& e);
 
     virtual void exit ();
   };
 
-  class Push_LH_Done : public MacroState
+  class Push_RH_Done: public MacroState
   {
-    virtual std::string get_name() const { return "Push_LH_Done"; }
+    virtual std::string get_name () const {return "Push_RH_Done";}
 
-    virtual void run(double time, double period);
+    virtual void run (double time, double period);
 
-    virtual void entry(const XBot::FSM::Message& msg);
+    virtual void entry (const XBot::FSM::Message& msg);
 
-    virtual void react(const XBot::FSM::Event& e);
+    virtual void react (const XBot::FSM::Event& e);
 
     virtual void exit ();
   };
 
-  class Homing : public MacroState
+  class Homing: public MacroState
     {
-    virtual std::string get_name() const { return "Homing"; }
+    virtual std::string get_name () const {return "Homing";}
 
-    virtual void run(double time, double period);
+    virtual void run (double time, double period);
 
-    virtual void entry(const XBot::FSM::Message& msg);
+    virtual void entry (const XBot::FSM::Message& msg);
 
-    virtual void react(const XBot::FSM::Event& e);
-
-    virtual void exit ();
-  };
-  
-  class Move_Fail : public MacroState
-  {
-    virtual std::string get_name() const { return "Move_Fail"; }
-
-    virtual void run(double time, double period);
-
-    virtual void entry(const XBot::FSM::Message& msg);
-
-    virtual void react(const XBot::FSM::Event& e);
+    virtual void react (const XBot::FSM::Event& e);
 
     virtual void exit ();
   };
-    
-  class Grasp_Fail : public MacroState
+
+  class Move_Fail: public MacroState
   {
-    virtual std::string get_name() const { return "Grasp_Fail"; }
+    virtual std::string get_name () const {return "Move_Fail";}
 
-    virtual void run(double time, double period);
+    virtual void run (double time, double period);
 
-    virtual void entry(const XBot::FSM::Message& msg);
+    virtual void entry (const XBot::FSM::Message& msg);
 
-    virtual void react(const XBot::FSM::Event& e);
+    virtual void react (const XBot::FSM::Event& e);
 
-    virtual void exit ();      
+    virtual void exit ();
   };
 
-  class Orient_Fail : public MacroState
+  class Grasp_Fail: public MacroState
   {
-    virtual std::string get_name() const { return "Orient_Fail"; }
+    virtual std::string get_name () const {return "Grasp_Fail";}
 
     virtual void run(double time, double period);
 
-    virtual void entry(const XBot::FSM::Message& msg);
+    virtual void entry (const XBot::FSM::Message& msg);
 
-    virtual void react(const XBot::FSM::Event& e);
+    virtual void react (const XBot::FSM::Event& e);
 
-    virtual void exit ();      
+    virtual void exit ();
   };
 
-
-  class Push_Fail : public MacroState
+  class Orient_Fail: public MacroState
   {
-    virtual std::string get_name() const { return "Push_Fail"; }
+    virtual std::string get_name () const {return "Orient_Fail";}
 
-    virtual void run(double time, double period);
+    virtual void run (double time, double period);
 
-    virtual void entry(const XBot::FSM::Message& msg);
+    virtual void entry (const XBot::FSM::Message& msg);
 
-    virtual void react(const XBot::FSM::Event& e);
+    virtual void react (const XBot::FSM::Event& e);
+
+    virtual void exit ();
+  };
+
+  class Push_Fail: public MacroState
+  {
+    virtual std::string get_name () const {return "Push_Fail";}
+
+    virtual void run (double time, double period);
+
+    virtual void entry (const XBot::FSM::Message& msg);
+
+    virtual void react (const XBot::FSM::Event& e);
 
     virtual void exit ();
   };

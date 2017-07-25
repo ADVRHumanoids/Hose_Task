@@ -33,16 +33,12 @@
 
 #include "int_markers_to_pose_array.h"
 
-
 namespace XBotPlugin
 {
-
   /** \brief Hose_Task XBot RT Plugin **/
   class Hose_Task : public XBot::XBotControlPlugin
   {
-
     public:
-
       virtual bool init_control_plugin(std::string path_to_config_file,
                                       XBot::SharedMemory::Ptr shared_memory,
                                       XBot::RobotInterface::Ptr robot);
@@ -54,11 +50,9 @@ namespace XBotPlugin
       virtual void on_stop(double time);
 
     protected:
-
       virtual void control_loop(double time, double period);
 
     private:
-
       XBot::RobotInterface::Ptr _robot;
 
       double _start_time;
@@ -66,10 +60,10 @@ namespace XBotPlugin
       //Eigen::VectorXd _q0;
 
       XBot::MatLogger::Ptr _logger;
-      
+
       XBot::FSM::StateMachine< myfsm::MacroState , myfsm::SharedData > fsm;
-      
-      std::shared_ptr<ros::NodeHandle> _nh;      
+
+      std::shared_ptr<ros::NodeHandle> _nh;
   };
 }
 

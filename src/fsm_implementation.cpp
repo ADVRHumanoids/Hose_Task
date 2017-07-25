@@ -28,59 +28,73 @@ myfsm::Home::react (const XBot::FSM::Event& e) {}
 
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Home::entry (const XBot::FSM::Message& msg) {}
+myfsm::Home::entry (const XBot::FSM::Message& msg)
+{
+  std::cout << "State: Home::entry" << std::endl;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 void
 myfsm::Home::run (double time, double period)
 {
-//  //std::cout << "Home run" << std::endl;
-//  
-//  // Home the robot
-//  localTimer = localTimer >1 ? 1: localTimer;
-//  
-//  shared_data()._robot->setPositionReference
-//    (shared_data()._q0+localTimer*(shared_data().state[0]-shared_data()._q0));
-//  shared_data()._robot->move();
-//  
-//  if (localTimer == 1)
-//  {
-//    // Homing finished, so move to the ne state
-//    shared_data()._robot->getJointPosition(shared_data()._q0);
-//    localTimer = 0;
-//    
-//    // New state transit
-    transit ("Move_RH");
-//  }
-//  
-//  localTimer += localStep;
+  if (shared_data().do_home_)
+  {
+    // Home the robot
+    localTimer = localTimer >1 ? 1: localTimer;
+    
+    // Set the robot's position references taken from its state
+    shared_data()._robot->setPositionReference
+      (shared_data()._q0+localTimer*(shared_data().state[0]-shared_data()._q0));
+    shared_data()._robot->move();
+    
+    if (localTimer == 1)
+    {
+      // Homing finished, so move to the ne state
+      shared_data()._robot->getJointPosition(shared_data()._q0);
+      localTimer = 0;
+      
+      // New state transit
+      transit ("Move_LH");
+    }
+    localTimer += localStep;
+  }
+  else
+  {
+    // Move to the next state: Move_LH
+    transit ("Move_LH");
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Home::exit () {}
-
-/*END Home*/
-
-
-/******************************* BEGIN Move_RH *******************************/
-///////////////////////////////////////////////////////////////////////////////
-void
-myfsm::Move_RH::react (const XBot::FSM::Event& e) {}
-
-///////////////////////////////////////////////////////////////////////////////
-void
-myfsm::Move_RH::entry (const XBot::FSM::Message& msg)
+myfsm::Home::exit ()
 {
-  std::cout << "Move_RH entry" << std::endl;
+  std::cout << "State: Home::exit" << std::endl;
+}
+/********************************* END Home **********************************/
+
+
+/******************************* BEGIN Move_LH *******************************/
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Move_LH::react (const XBot::FSM::Event& e) {}
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Move_LH::entry (const XBot::FSM::Message& msg)
+{
+  std::cout << "State: Move_LH entry" << std::endl;
+  std::cout << "Pub /hose_grasp_pose for left hand..." << std::endl;
 
   // Blocking Reading: wait for a command
-  if(!shared_data().command.read(shared_data().current_command))
-    std::cout << shared_data().current_command.str() << std::endl;
+  if(!shared_data ().command.read (shared_data ().current_command))
+    std::cout << "Cmd received: "
+              << shared_data ().current_command.str ()
+              << std::endl;
 
   // Wait for RH_Pose, i.e. the Hose Grasp Pose (hose_grasp_pose)
-  shared_data()._hose_grasp_pose =
-    ros::topic::waitForMessage<geometry_msgs::PoseStamped>("hose_grasp_pose");
+  shared_data ()._hose_grasp_pose =
+    ros::topic::waitForMessage<geometry_msgs::PoseStamped> (shared_data ().pose_cmd_);
 
   // Debug msg
   std::cout << shared_data()._hose_grasp_pose->pose.position.x << std::endl;
@@ -93,7 +107,7 @@ myfsm::Move_RH::entry (const XBot::FSM::Message& msg)
   Eigen::Affine3d world_T_bl;
   std::string fb;
   shared_data()._robot->model().getFloatingBaseLink(fb);
-  tf.getTransformTf(fb, "world_odom", world_T_bl);
+  tf.getTransformTf(fb, shared_data ().frame_id_, world_T_bl);
   shared_data()._robot->model().setFloatingBasePose(world_T_bl);
   shared_data()._robot->model().update();
 
@@ -125,7 +139,7 @@ myfsm::Move_RH::entry (const XBot::FSM::Message& msg)
   end_hand_pose_stamped.pose.position.x = shared_data()._hose_grasp_pose->pose.position.x;
   end_hand_pose_stamped.pose.position.y = shared_data()._hose_grasp_pose->pose.position.y;
   end_hand_pose_stamped.pose.position.z = shared_data()._hose_grasp_pose->pose.position.z+0.2;
-    
+  
   end_hand_pose_stamped.pose.orientation.x = shared_data()._hose_grasp_pose->pose.orientation.x;
   end_hand_pose_stamped.pose.orientation.y = shared_data()._hose_grasp_pose->pose.orientation.y;
   end_hand_pose_stamped.pose.orientation.z = shared_data()._hose_grasp_pose->pose.orientation.z;
@@ -134,7 +148,6 @@ myfsm::Move_RH::entry (const XBot::FSM::Message& msg)
   trajectory_utils::Cartesian end;
   end.distal_frame = "LSoftHand";
   end.frame = end_hand_pose_stamped;
-
 
   // define the first segment
   trajectory_utils::segment s1;
@@ -164,7 +177,7 @@ myfsm::Move_RH::entry (const XBot::FSM::Message& msg)
   
   // prapere the advr_segment_control
   ADVR_ROS::advr_segment_control srv;
-  srv.request.segment_trj.header.frame_id = "world_odom";
+  srv.request.segment_trj.header.frame_id = shared_data ().frame_id_;
   srv.request.segment_trj.header.stamp = ros::Time::now();
   srv.request.segment_trj.segments = segments;
   
@@ -173,14 +186,15 @@ myfsm::Move_RH::entry (const XBot::FSM::Message& msg)
   
   // save last hand pose
    shared_data()._last_lh_pose =
-     boost::shared_ptr<geometry_msgs::PoseStamped>(new geometry_msgs::PoseStamped(end_hand_pose_stamped));
+     boost::shared_ptr<geometry_msgs::PoseStamped>
+       (new geometry_msgs::PoseStamped (end_hand_pose_stamped));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Move_RH::run (double time, double period)
+myfsm::Move_LH::run (double time, double period)
 {
-  //std::cout << "Move_RH run" << std::endl;
+  //std::cout << "Move_LH run" << std::endl;
   
   // Magnetise cmd
   
@@ -192,35 +206,38 @@ myfsm::Move_RH::run (double time, double period)
   //TBD: Check if the RH has reached the hose_grasp_pose 
   
   // blocking reading: wait for a command
+  std::cout << "Send \"rh_move_fail\" or \"success\" msg..." << std::endl;
+
   if(shared_data().command.read(shared_data().current_command))
   {
     std::cout << "Command: " << shared_data().current_command.str() << std::endl;
 
     // RH Move failed
     if (!shared_data().current_command.str().compare("rh_move_fail"))
-      transit("Move_RH");
+      transit("Move_LH");
     
     // RH Move Succeeded
     if (!shared_data().current_command.str().compare("success"))
-      transit("Grasp_RH");
+      transit("Grasp_LH");
   }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Move_RH::exit () {}
+myfsm::Move_LH::exit ()
+{
+  std::cout << "State: Move_LH::exit" << std::endl;
+}
+/******************************** END Move_LH ********************************/
 
-/*END Move_RH*/
-
-
- /*BEGIN Grasp_RH*/
+ /*BEGIN Grasp_LH*/
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Grasp_RH::react (const XBot::FSM::Event& e) {}
+myfsm::Grasp_LH::react (const XBot::FSM::Event& e) {}
 
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Grasp_RH::entry(const XBot::FSM::Message& msg)
+myfsm::Grasp_LH::entry(const XBot::FSM::Message& msg)
 {
      //r hand moving
 //     int r_hand_id =_robot->getHand()["r_handj"]->getHandId();
@@ -243,9 +260,9 @@ myfsm::Grasp_RH::entry(const XBot::FSM::Message& msg)
 
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Grasp_RH::run(double time, double period)
+myfsm::Grasp_LH::run(double time, double period)
 {
-  std::cout << "Grasp_RH run" << std::endl;
+  std::cout << "Grasp_LH run" << std::endl;
   
   //TBD: check if the move has failed
   bool move_rh_fail = false;
@@ -255,29 +272,29 @@ myfsm::Grasp_RH::run(double time, double period)
   
   //TBD: Grasp with RH
   
-  transit("Grasp_RH_Done");
+  transit("Grasp_LH_Done");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Grasp_RH::exit ()
+myfsm::Grasp_LH::exit ()
 {
-  std::cout << "Grasp_RH run" << std::endl;
+  std::cout << "Grasp_LH run" << std::endl;
 }
 
-/*END Grasp_RH*/
+/*END Grasp_LH*/
 
 
- /*BEGIN Grasp_RH_Done*/
+ /*BEGIN Grasp_LH_Done*/
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Grasp_RH_Done::react (const XBot::FSM::Event& e) {}
+myfsm::Grasp_LH_Done::react (const XBot::FSM::Event& e) {}
 
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Grasp_RH_Done::entry (const XBot::FSM::Message& msg)
+myfsm::Grasp_LH_Done::entry (const XBot::FSM::Message& msg)
 {
-  std::cout << "Grasp_RH_Done entry" << std::endl;
+  std::cout << "Grasp_LH_Done entry" << std::endl;
 
   // Move RH to RH_Pose
 
@@ -286,7 +303,7 @@ myfsm::Grasp_RH_Done::entry (const XBot::FSM::Message& msg)
   Eigen::Affine3d world_T_bl;
   std::string fb;
   shared_data()._robot->model().getFloatingBaseLink(fb);
-  tf.getTransformTf(fb, "world_odom", world_T_bl);
+  tf.getTransformTf(fb, shared_data ().frame_id_, world_T_bl);
   shared_data()._robot->model().setFloatingBasePose(world_T_bl);
   shared_data()._robot->model().update();
 
@@ -322,7 +339,7 @@ myfsm::Grasp_RH_Done::entry (const XBot::FSM::Message& msg)
   
   // prapere the advr_segment_control
   ADVR_ROS::advr_segment_control srv;
-  srv.request.segment_trj.header.frame_id = "world_odom";
+  srv.request.segment_trj.header.frame_id = shared_data ().frame_id_;
   srv.request.segment_trj.header.stamp = ros::Time::now();
   srv.request.segment_trj.segments = segments;
   
@@ -337,14 +354,15 @@ myfsm::Grasp_RH_Done::entry (const XBot::FSM::Message& msg)
 
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Grasp_RH_Done::run (double time, double period)
+myfsm::Grasp_LH_Done::run (double time, double period)
 {
-  std::cout << "Grasp_RH_Done run" << std::endl;
+  std::cout << "Grasp_LH_Done run" << std::endl;
   
-  //TBD: Check if RH_Grasp or the Move_RH has failed
+  //TBD: Check if RH_Grasp or the Move_LH has failed
 
     
   // blocking reading: wait for a command
+  std::cout << "Send \"success\" msg..." << std::endl;
   if(shared_data().command.read(shared_data().current_command))
   {
     std::cout << "Command: " << shared_data().current_command.str() << std::endl;
@@ -361,31 +379,31 @@ myfsm::Grasp_RH_Done::run (double time, double period)
     
     // RH Move Succeeded
     if (!shared_data().current_command.str().compare("success"))
-      transit("Orient_RH");
+      transit("Orient_LH");
   }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Grasp_RH_Done::exit () {}
+myfsm::Grasp_LH_Done::exit () {}
 
-/*END Grasp_RH_Done*/
+/*END Grasp_LH_Done*/
 
 
- /*BEGIN Orient_RH*/
+ /*BEGIN Orient_LH*/
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Orient_RH::react (const XBot::FSM::Event& e) {}
+myfsm::Orient_LH::react (const XBot::FSM::Event& e) {}
 
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Orient_RH::entry (const XBot::FSM::Message& msg)
+myfsm::Orient_LH::entry (const XBot::FSM::Message& msg)
 {
-  std::cout << "Orient_RH entry" << std::endl;
+  std::cout << "Orient_LH entry" << std::endl;
 
   //Wait for RH_Pose (orientation)
   shared_data()._hose_grasp_pose =
-    ros::topic::waitForMessage<geometry_msgs::PoseStamped>("hose_grasp_pose");
+    ros::topic::waitForMessage<geometry_msgs::PoseStamped>(shared_data ().pose_cmd_);
 
   // Move RH to RH_Pose
 
@@ -425,7 +443,7 @@ myfsm::Orient_RH::entry (const XBot::FSM::Message& msg)
   
   // prapere the advr_segment_control
   ADVR_ROS::advr_segment_control srv;
-  srv.request.segment_trj.header.frame_id = "world_odom";
+  srv.request.segment_trj.header.frame_id = shared_data ().frame_id_;
   srv.request.segment_trj.header.stamp = ros::Time::now();
   srv.request.segment_trj.segments = segments;
   
@@ -440,44 +458,45 @@ myfsm::Orient_RH::entry (const XBot::FSM::Message& msg)
 
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Orient_RH::run(double time, double period)
+myfsm::Orient_LH::run(double time, double period)
 {
-  std::cout << "Orient_RH run" << std::endl;
+  std::cout << "Orient_LH run" << std::endl;
   
   //TBD: Move RH to RH_Pose
   // blocking reading: wait for a command
+  std::cout << "Send \"success\" msg..." << std::endl;
   if(shared_data().command.read(shared_data().current_command))
   {
     std::cout << "Command: " << shared_data().current_command.str() << std::endl;
     
     // RH Move Succeeded
     if (!shared_data().current_command.str().compare("success"))
-      transit("Orient_RH_Done");
+      transit("Orient_LH_Done");
   }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Orient_RH::exit () {}
+myfsm::Orient_LH::exit () {}
 
-/*END Orient_RH*/
+/*END Orient_LH*/
 
 
- /*BEGIN Orient_RH_Done*/
+ /*BEGIN Orient_LH_Done*/
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Orient_RH_Done::react (const XBot::FSM::Event& e) {}
-
-///////////////////////////////////////////////////////////////////////////////
-void
-myfsm::Orient_RH_Done::entry (const XBot::FSM::Message& msg) {}
+myfsm::Orient_LH_Done::react (const XBot::FSM::Event& e) {}
 
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Orient_RH_Done::run (double time, double period)
+myfsm::Orient_LH_Done::entry (const XBot::FSM::Message& msg) {}
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Orient_LH_Done::run (double time, double period)
 {
-  std::cout << "Orient_RH_Done run" << std::endl;
-
+  std::cout << "Orient_LH_Done run" << std::endl;
+  
   //TBD: Check if the RH orientation has failed
   bool orient_fail = false;
   
@@ -486,34 +505,34 @@ myfsm::Orient_RH_Done::run (double time, double period)
   
   //TBD: Wait LH_Pose
   shared_data()._hose_grasp_pose =
-    ros::topic::waitForMessage<geometry_msgs::PoseStamped>("hose_grasp_pose");
+    ros::topic::waitForMessage<geometry_msgs::PoseStamped>(shared_data ().pose_cmd_);
     //ros::topic::waitForMessage<geometry_msgs::PoseStamped>("hose_push_pose");
   
-  transit("Move_LH");
+  transit("Move_RH");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Orient_RH_Done::exit () {}
+myfsm::Orient_LH_Done::exit () {}
 
-/*END Orient_RH_Done*/
+/*END Orient_LH_Done*/
 
 
- /*BEGIN Move_LH*/
+ /*BEGIN Move_RH*/
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Move_LH::react (const XBot::FSM::Event& e) {}
+myfsm::Move_RH::react (const XBot::FSM::Event& e) {}
 
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Move_LH::entry (const XBot::FSM::Message& msg)
+myfsm::Move_RH::entry (const XBot::FSM::Message& msg)
 {
   // sense and sync model
   shared_data()._robot->sense();
   Eigen::Affine3d world_T_bl;
   std::string fb;
   shared_data()._robot->model().getFloatingBaseLink(fb);
-  tf.getTransformTf(fb, "world_odom", world_T_bl);
+  tf.getTransformTf(fb, shared_data ().frame_id_, world_T_bl);
   shared_data()._robot->model().setFloatingBasePose(world_T_bl);
   shared_data()._robot->model().update();
 
@@ -521,7 +540,7 @@ myfsm::Move_LH::entry (const XBot::FSM::Message& msg)
   Eigen::Affine3d hand_pose;
   geometry_msgs::Pose start_frame_pose;
   
-  shared_data()._robot->model().getPose("RSoftHand", "world_odom", hand_pose);
+  shared_data()._robot->model().getPose("RSoftHand", shared_data ().frame_id_, hand_pose);
   //shared_data()._robot->model().getPose("RSoftHand", hand_pose);
   shared_data().sr_hand_pose = hand_pose;
 
@@ -571,7 +590,7 @@ myfsm::Move_LH::entry (const XBot::FSM::Message& msg)
   
   // prapere the advr_segment_control
   ADVR_ROS::advr_segment_control srv;
-  srv.request.segment_trj.header.frame_id = "world_odom";
+  srv.request.segment_trj.header.frame_id = shared_data ().frame_id_;
   //srv.request.segment_trj.header.frame_id = "world";
   srv.request.segment_trj.header.stamp = ros::Time::now();
   srv.request.segment_trj.segments = segments;
@@ -582,52 +601,53 @@ myfsm::Move_LH::entry (const XBot::FSM::Message& msg)
 
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Move_LH::run (double time, double period)
+myfsm::Move_RH::run (double time, double period)
 {
-  std::cout << "Move_LH run" << std::endl;
+  std::cout << "Move_RH run" << std::endl;
   
   //TBD: Grasp with LH
   //TBD: Move to LH_Pose
   
   // blocking reading: wait for a command
+  std::cout << "Send \"success\" msg..." << std::endl;
   if(shared_data().command.read(shared_data().current_command))
   {
     std::cout << "Command: " << shared_data().current_command.str() << std::endl;
 
     // LH Move Succeeded
     if (!shared_data().current_command.str().compare("success"))
-      transit("Push_LH");
+      transit("Push_RH");
   }
   }
 
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Move_LH::exit () {}
+myfsm::Move_RH::exit () {}
 
-/*END Move_LH*/
+/*END Move_RH*/
 
 
- /*BEGIN Push_LH*/
+ /*BEGIN Push_RH*/
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Push_LH::react (const XBot::FSM::Event& e) {}
-
-///////////////////////////////////////////////////////////////////////////////
-void
-myfsm::Push_LH::entry (const XBot::FSM::Message& msg) {}
+myfsm::Push_RH::react (const XBot::FSM::Event& e) {}
 
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Push_LH::run (double time, double period)
+myfsm::Push_RH::entry (const XBot::FSM::Message& msg) {}
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Push_RH::run (double time, double period)
 {
-  std::cout << "Push_LH run" << std::endl;
+  std::cout << "Push_RH run" << std::endl;
 
   // sense and sync model
   shared_data()._robot->sense();
   Eigen::Affine3d world_T_bl;
   std::string fb;
   shared_data()._robot->model().getFloatingBaseLink(fb);
-  tf.getTransformTf(fb, "world_odom", world_T_bl);
+  tf.getTransformTf(fb, shared_data ().frame_id_, world_T_bl);
   shared_data()._robot->model().setFloatingBasePose(world_T_bl);
   shared_data()._robot->model().update();
 
@@ -677,7 +697,7 @@ myfsm::Push_LH::run (double time, double period)
   
   // prapere the advr_segment_control
   ADVR_ROS::advr_segment_control srv;
-  srv.request.segment_trj.header.frame_id = "world_odom";
+  srv.request.segment_trj.header.frame_id = shared_data ().frame_id_;
   //srv.request.segment_trj.header.frame_id = "world";
   srv.request.segment_trj.header.stamp = ros::Time::now();
   srv.request.segment_trj.segments = segments;
@@ -696,30 +716,30 @@ myfsm::Push_LH::run (double time, double period)
   
   //TBD: Move LH to fixed position a number of times
   
-  transit("Push_LH_Done");
+  transit("Push_RH_Done");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Push_LH::exit () {}
+myfsm::Push_RH::exit () {}
 
-/*END Push_LH*/
+/*END Push_RH*/
 
 
- /*BEGIN Push_LH_Done*/
+ /*BEGIN Push_RH_Done*/
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Push_LH_Done::react (const XBot::FSM::Event& e) {}
-
-///////////////////////////////////////////////////////////////////////////////
-void
-myfsm::Push_LH_Done::entry (const XBot::FSM::Message& msg) {}
+myfsm::Push_RH_Done::react (const XBot::FSM::Event& e) {}
 
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Push_LH_Done::run (double time, double period)
+myfsm::Push_RH_Done::entry (const XBot::FSM::Message& msg) {}
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Push_RH_Done::run (double time, double period)
 {
-  std::cout << "Push_LH_Done run" << std::endl;
+  std::cout << "Push_RH_Done run" << std::endl;
   
   //TBD: Ungrasp both hands
   
@@ -728,9 +748,9 @@ myfsm::Push_LH_Done::run (double time, double period)
 
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Push_LH_Done::exit () {}
+myfsm::Push_RH_Done::exit () {}
 
-/*END Push_LH_Done*/
+/*END Push_RH_Done*/
 
 
  /*BEGIN Homing*/
@@ -752,7 +772,7 @@ myfsm::Homing::entry (const XBot::FSM::Message& msg)
   Eigen::Affine3d world_T_bl;
   std::string fb;
   shared_data()._robot->model().getFloatingBaseLink(fb);
-  tf.getTransformTf(fb, "world_odom", world_T_bl);
+  tf.getTransformTf(fb, shared_data ().frame_id_, world_T_bl);
   shared_data()._robot->model().setFloatingBasePose(world_T_bl);
   shared_data()._robot->model().update();
 
@@ -799,13 +819,14 @@ myfsm::Homing::entry (const XBot::FSM::Message& msg)
   
   // prapere the advr_segment_control
   ADVR_ROS::advr_segment_control srv;
-  srv.request.segment_trj.header.frame_id = "world_odom";
+  srv.request.segment_trj.header.frame_id = shared_data ().frame_id_;
   srv.request.segment_trj.header.stamp = ros::Time::now();
   srv.request.segment_trj.segments = segments;
   
   // call the service
   shared_data()._client.call(srv);
   
+  std::cout << "Send \"success\" msg..." << std::endl;
   if(shared_data().command.read(shared_data().current_command))
   {
     std::cout << "Command: " << shared_data().current_command.str() << std::endl;
@@ -818,7 +839,7 @@ myfsm::Homing::entry (const XBot::FSM::Message& msg)
   Eigen::Affine3d world_T_bl;
   std::string fb;
   shared_data()._robot->model().getFloatingBaseLink(fb);
-  tf.getTransformTf(fb, "world_odom", world_T_bl);
+  tf.getTransformTf(fb, shared_data ().frame_id_, world_T_bl);
   shared_data()._robot->model().setFloatingBasePose(world_T_bl);
   shared_data()._robot->model().update();
 
@@ -865,7 +886,7 @@ myfsm::Homing::entry (const XBot::FSM::Message& msg)
   
   // prapere the advr_segment_control
   ADVR_ROS::advr_segment_control srv_r;
-  srv_r.request.segment_trj.header.frame_id = "world_odom";
+  srv_r.request.segment_trj.header.frame_id = shared_data ().frame_id_;
   srv_r.request.segment_trj.header.stamp = ros::Time::now();
   srv_r.request.segment_trj.segments = segments_r;
   
@@ -931,7 +952,7 @@ myfsm::Grasp_Fail::run (double time, double period)
   std::cout << "Grasp_Fail run" << std::endl;
   //TBD: ungrasp RH
   
-  transit("Grasp_RH");
+  transit("Grasp_LH");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -956,7 +977,7 @@ myfsm::Orient_Fail::run (double time, double period)
 {
   std::cout << "Orient_Fail run" << std::endl;
   
-  transit("Grasp_RH_Done");
+  transit("Grasp_LH_Done");
 }
 
 ///////////////////////////////////////////////////////////////////////////////

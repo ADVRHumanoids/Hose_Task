@@ -44,7 +44,7 @@ Hose_Task::init_control_plugin (std::string path_to_config_file,
    * the current date/time is always appended to the provided filename,
    * so that logs do not overwrite each other.
    */
-    
+  
   _logger = XBot::MatLogger::getLogger("/tmp/Hose_Task_log");
   
   // ROS initialization
@@ -52,7 +52,7 @@ Hose_Task::init_control_plugin (std::string path_to_config_file,
   const char *arg = "dummy_arg";
   char* argg = const_cast<char*>(arg);
   char** argv = &argg;
-    
+  
   ros::init(argc, argv, "Hose_Task");
   
   ros::NodeHandle* node_handle = new ros::NodeHandle;
@@ -63,17 +63,17 @@ Hose_Task::init_control_plugin (std::string path_to_config_file,
 
   /*Saves robot as shared variable between states*/
   fsm.shared_data()._robot= robot;
-    
+
   /*Registers states*/
   fsm.register_state(std::make_shared<myfsm::Home>());
-  fsm.register_state(std::make_shared<myfsm::Move_RH>());
-  fsm.register_state(std::make_shared<myfsm::Grasp_RH>());
-  fsm.register_state(std::make_shared<myfsm::Grasp_RH_Done>());
-  fsm.register_state(std::make_shared<myfsm::Orient_RH>());
-  fsm.register_state(std::make_shared<myfsm::Orient_RH_Done>());
   fsm.register_state(std::make_shared<myfsm::Move_LH>());
-  fsm.register_state(std::make_shared<myfsm::Push_LH>());
-  fsm.register_state(std::make_shared<myfsm::Push_LH_Done>());
+  fsm.register_state(std::make_shared<myfsm::Grasp_LH>());
+  fsm.register_state(std::make_shared<myfsm::Grasp_LH_Done>());
+  fsm.register_state(std::make_shared<myfsm::Orient_LH>());
+  fsm.register_state(std::make_shared<myfsm::Orient_LH_Done>());
+  fsm.register_state(std::make_shared<myfsm::Move_RH>());
+  fsm.register_state(std::make_shared<myfsm::Push_RH>());
+  fsm.register_state(std::make_shared<myfsm::Push_RH_Done>());
   fsm.register_state(std::make_shared<myfsm::Homing>());
   fsm.register_state(std::make_shared<myfsm::Move_Fail>());
   fsm.register_state(std::make_shared<myfsm::Grasp_Fail>());
