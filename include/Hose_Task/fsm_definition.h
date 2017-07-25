@@ -97,6 +97,10 @@ namespace myfsm
 
     // Starting left and right hand poses
     Eigen::Affine3d sl_hand_pose, sr_hand_pose;
+
+    // For saving the last poses of left and right hands
+    geometry_msgs::PoseStamped::ConstPtr _last_lh_pose;
+    geometry_msgs::PoseStamped::ConstPtr _last_rh_pose;
   };
 
   class MacroState : public  XBot::FSM::State< MacroState , SharedData >

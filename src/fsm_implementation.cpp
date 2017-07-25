@@ -34,26 +34,26 @@ myfsm::Home::entry (const XBot::FSM::Message& msg) {}
 void
 myfsm::Home::run (double time, double period)
 {
-  //std::cout << "Home run" << std::endl;
-  
-  // Home the robot
-  localTimer = localTimer >1 ? 1: localTimer;
-   
-  shared_data()._robot->setPositionReference
-    (shared_data()._q0+localTimer*(shared_data().state[0]-shared_data()._q0));
-  shared_data()._robot->move();
-  
-  if (localTimer == 1)
-  {
-    // Homing finished, so move to the ne state
-    shared_data()._robot->getJointPosition(shared_data()._q0);
-    localTimer = 0;
-    
-    // New state transit
+//  //std::cout << "Home run" << std::endl;
+//  
+//  // Home the robot
+//  localTimer = localTimer >1 ? 1: localTimer;
+//  
+//  shared_data()._robot->setPositionReference
+//    (shared_data()._q0+localTimer*(shared_data().state[0]-shared_data()._q0));
+//  shared_data()._robot->move();
+//  
+//  if (localTimer == 1)
+//  {
+//    // Homing finished, so move to the ne state
+//    shared_data()._robot->getJointPosition(shared_data()._q0);
+//    localTimer = 0;
+//    
+//    // New state transit
     transit ("Move_RH");
-  }
-  
-  localTimer += localStep;
+//  }
+//  
+//  localTimer += localStep;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -170,6 +170,10 @@ myfsm::Move_RH::entry (const XBot::FSM::Message& msg)
   
   // call the service
   shared_data()._client.call(srv);
+  
+  // save last hand pose
+   shared_data()._last_lh_pose =
+     boost::shared_ptr<geometry_msgs::PoseStamped>(new geometry_msgs::PoseStamped(end_hand_pose_stamped));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -286,20 +290,9 @@ myfsm::Grasp_RH_Done::entry (const XBot::FSM::Message& msg)
   shared_data()._robot->model().setFloatingBasePose(world_T_bl);
   shared_data()._robot->model().update();
 
-  // Get current hand
-  KDL::Frame hand_pose_KDL;
-  Eigen::Affine3d hand_pose;
-  geometry_msgs::Pose start_hand_pose;
-
-  // Get hand pose
-  shared_data()._robot->model().getPose("LSoftHand", hand_pose);
-  
-  // Transform from Eigen::Affine3d to geometry_msgs::Pose
-  tf::poseEigenToMsg (hand_pose, start_hand_pose);
-
   // Define the start frame as geometry_msgs::PoseStamped
   geometry_msgs::PoseStamped start_hand_pose_stamped;
-  start_hand_pose_stamped.pose = start_hand_pose;
+  start_hand_pose_stamped = *shared_data()._last_lh_pose;
   
   // Create the Cartesian trajectories
   trajectory_utils::Cartesian start_traj;
@@ -308,9 +301,9 @@ myfsm::Grasp_RH_Done::entry (const XBot::FSM::Message& msg)
   
   // define the end frame
   geometry_msgs::PoseStamped end_hand_pose_stamped;
-  end_hand_pose_stamped.pose = start_hand_pose;
+  end_hand_pose_stamped.pose = start_hand_pose_stamped.pose;
   end_hand_pose_stamped.pose.position.z += 0.1;
-      
+  
   trajectory_utils::Cartesian end;
   end.distal_frame = "LSoftHand";
   end.frame = end_hand_pose_stamped;
@@ -335,6 +328,11 @@ myfsm::Grasp_RH_Done::entry (const XBot::FSM::Message& msg)
   
   // call the service
   shared_data()._client.call(srv);
+  
+  // save last hand pose
+  shared_data()._last_lh_pose =
+    boost::shared_ptr<geometry_msgs::PoseStamped>(new geometry_msgs::PoseStamped(end_hand_pose_stamped));
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -391,29 +389,9 @@ myfsm::Orient_RH::entry (const XBot::FSM::Message& msg)
 
   // Move RH to RH_Pose
 
-  // sense and sync model
-  shared_data()._robot->sense();
-  Eigen::Affine3d world_T_bl;
-  std::string fb;
-  shared_data()._robot->model().getFloatingBaseLink(fb);
-  tf.getTransformTf(fb, "world_odom", world_T_bl);
-  shared_data()._robot->model().setFloatingBasePose(world_T_bl);
-  shared_data()._robot->model().update();
-
-  // Get current hand
-  KDL::Frame hand_pose_KDL;
-  Eigen::Affine3d hand_pose;
-  geometry_msgs::Pose start_hand_pose;
-
-  // Get hand pose
-  shared_data()._robot->model().getPose("LSoftHand", hand_pose);
-  
-  // Transform from Eigen::Affine3d to geometry_msgs::Pose
-  tf::poseEigenToMsg (hand_pose, start_hand_pose);
-
   // Define the start frame as geometry_msgs::PoseStamped
   geometry_msgs::PoseStamped start_hand_pose_stamped;
-  start_hand_pose_stamped.pose = start_hand_pose;
+  start_hand_pose_stamped = *shared_data()._last_lh_pose;
   
   // Create the Cartesian trajectories
   trajectory_utils::Cartesian start_traj;
@@ -422,7 +400,7 @@ myfsm::Orient_RH::entry (const XBot::FSM::Message& msg)
   
   // define the end frame
   geometry_msgs::PoseStamped end_hand_pose_stamped;
-  end_hand_pose_stamped.pose = start_hand_pose;
+  end_hand_pose_stamped.pose = start_hand_pose_stamped.pose;
       
   end_hand_pose_stamped.pose.orientation.x = shared_data()._hose_grasp_pose->pose.orientation.x;
   end_hand_pose_stamped.pose.orientation.y = shared_data()._hose_grasp_pose->pose.orientation.y;
@@ -453,6 +431,11 @@ myfsm::Orient_RH::entry (const XBot::FSM::Message& msg)
   
   // call the service
   shared_data()._client.call(srv);
+  
+  // save last hand pose
+  shared_data()._last_lh_pose =
+    boost::shared_ptr<geometry_msgs::PoseStamped>(new geometry_msgs::PoseStamped(end_hand_pose_stamped));
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////
