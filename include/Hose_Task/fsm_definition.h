@@ -26,6 +26,7 @@
 #include <std_msgs/String.h>
 
 #include <ADVR_ROS/advr_segment_control.h>
+#include <ADVR_ROS/advr_grasp_control_srv.h>
 
 #include <trajectory_utils/segment.h>
 #include <trajectory_utils/Cartesian.h>
@@ -86,6 +87,10 @@ namespace myfsm
     Eigen::VectorXd _q0;
 
     ros::ServiceClient _client;
+    
+    // Grasping
+    ros::ServiceClient _grasp_client;
+    
     geometry_msgs::PoseStamped::ConstPtr _hose_grasp_pose;
 
     // Grasping publisher
@@ -103,7 +108,7 @@ namespace myfsm
     geometry_msgs::PoseStamped::ConstPtr _last_rh_pose;
 
     // Command string for reading poses
-    std::string pose_cmd_ = "hose_grasp_pose";
+    std::string pose_cmd_ = "hose_pose";
     
     // Working frame id
     std::string frame_id_ = "world_odom";

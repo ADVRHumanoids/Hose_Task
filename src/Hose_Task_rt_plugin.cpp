@@ -58,6 +58,7 @@ Hose_Task::init_control_plugin (std::string path_to_config_file,
   ros::NodeHandle* node_handle = new ros::NodeHandle;
   _nh = std::shared_ptr<ros::NodeHandle>(node_handle);
   fsm.shared_data()._client = _nh->serviceClient<ADVR_ROS::advr_segment_control>("segment_control");
+  fsm.shared_data()._grasp_client = _nh->serviceClient<ADVR_ROS::advr_grasp_control_srv>("grasp_control");
   fsm.shared_data()._grasp_mag_pub = _nh->advertise<std_msgs::Bool>("/grasp/LWrMot3", 1);
 
 
