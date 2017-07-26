@@ -675,12 +675,6 @@ myfsm::Push_RH::run (double time, double period)
   
   // call the service
   shared_data()._client.call(srv);
-  
-  //ungrasp
-  ADVR_ROS::advr_grasp_control_srv srv;
-  srv.request.right_grasp = 0.0; // right hand: opened
-  srv.request.left_grasp = 0.0;  // left hand: closed
-  shared_data ()._grasp_client.call (srv); // call the service
 
   //TBD: check if the orientation or mnove has failed
   bool orient_fail = false;
@@ -700,6 +694,11 @@ myfsm::Push_RH::run (double time, double period)
 void
 myfsm::Push_RH::exit ()
 {
+    ADVR_ROS::advr_grasp_control_srv srv;
+  srv.request.right_grasp = 0.0;
+  srv.request.left_grasp = 0.0;
+  // call the service
+  shared_data ()._grasp_client.call(srv);
   std::cout << "State: Push_RH::exit" << std::endl;
 }
 
