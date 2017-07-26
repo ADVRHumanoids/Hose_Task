@@ -405,8 +405,8 @@ myfsm::Orient_LH::entry (const XBot::FSM::Message& msg)
   geometry_msgs::PoseStamped end_hand_pose_stamped;
   end_hand_pose_stamped.pose = start_hand_pose_stamped.pose;
       
-  end_hand_pose_stamped.pose.orientation =
-    shared_data()._hose_grasp_pose->pose.orientation;
+  //end_hand_pose_stamped.pose.orientation =
+  //  shared_data()._hose_grasp_pose->pose.orientation;
   
   trajectory_utils::Cartesian end;
   end.distal_frame = "LSoftHand";
