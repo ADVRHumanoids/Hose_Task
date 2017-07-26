@@ -529,7 +529,12 @@ myfsm::Move_RH::entry (const XBot::FSM::Message& msg)
   geometry_msgs::PoseStamped end_hand_pose_stamped;
   end_hand_pose_stamped.pose.position =
     shared_data()._hose_grasp_pose->pose.position;
-  
+    
+  std::cout << "end_hand_pose_stamped.pose.position: "
+            << end_hand_pose_stamped.pose.position.x << ","
+            << end_hand_pose_stamped.pose.position.y << ","
+            << end_hand_pose_stamped.pose.position.z << std::endl;
+            
   end_hand_pose_stamped.pose.orientation.x = 0.0;
   end_hand_pose_stamped.pose.orientation.y = -0.7071;
   end_hand_pose_stamped.pose.orientation.z = 0.0;
@@ -563,6 +568,11 @@ myfsm::Move_RH::entry (const XBot::FSM::Message& msg)
   shared_data()._last_rh_pose =
     boost::shared_ptr<geometry_msgs::PoseStamped>
       (new geometry_msgs::PoseStamped (end_hand_pose_stamped));
+   
+  std::cout << "saved end_hand_pose_stamped.pose.position: "
+            << end_hand_pose_stamped.pose.position.x << ","
+            << end_hand_pose_stamped.pose.position.y << ","
+            << end_hand_pose_stamped.pose.position.z << std::endl;
   
   // Info msg
   std::cout << "Send \"success\" msg..." << std::endl;
@@ -610,6 +620,11 @@ myfsm::Push_RH::entry (const XBot::FSM::Message& msg)
   geometry_msgs::PoseStamped start_hand_pose_stamped;
   start_hand_pose_stamped = *shared_data()._last_rh_pose;
   
+  std::cout << "loaded start_hand_pose_stamped.pose.position: "
+            << start_hand_pose_stamped.pose.position.x << ","
+            << start_hand_pose_stamped.pose.position.y << ","
+            << start_hand_pose_stamped.pose.position.z << std::endl;
+  
   // Create the Cartesian trajectories
   trajectory_utils::Cartesian start_traj;
   start_traj.distal_frame = "RSoftHand";
@@ -619,10 +634,7 @@ myfsm::Push_RH::entry (const XBot::FSM::Message& msg)
   geometry_msgs::PoseStamped end_hand_pose_stamped;
   end_hand_pose_stamped.pose.position =
     start_hand_pose_stamped.pose.position;
-  
-    //test
-  end_hand_pose_stamped.pose.position.z += 0.10;
-    
+      
   end_hand_pose_stamped.pose.orientation.x = 0.0;
   end_hand_pose_stamped.pose.orientation.y = -0.7071;
   end_hand_pose_stamped.pose.orientation.z = 0.0;
@@ -636,7 +648,7 @@ myfsm::Push_RH::entry (const XBot::FSM::Message& msg)
   std::vector<trajectory_utils::segment> segments;
   trajectory_utils::segment s1;
   s1.type.data = 0;        // min jerk traj
-  s1.T.data = 5.0;         // traj duration
+  s1.T.data = 1.0;         // traj duration
   
   for (int i=0; i<5; i++)
   {
