@@ -27,6 +27,7 @@
 
 #include <ADVR_ROS/advr_segment_control.h>
 #include <ADVR_ROS/advr_grasp_control_srv.h>
+#include <ADVR_ROS/im_pose_msg.h>
 
 #include <trajectory_utils/segment.h>
 #include <trajectory_utils/Cartesian.h>
@@ -87,10 +88,10 @@ namespace myfsm
     Eigen::VectorXd _q0;
 
     ros::ServiceClient _client;
-    
+
     // Grasping
     ros::ServiceClient _grasp_client;
-    
+
     geometry_msgs::PoseStamped::ConstPtr _hose_grasp_pose;
 
     // Grasping publisher
@@ -109,7 +110,7 @@ namespace myfsm
 
     // Command string for reading poses
     std::string pose_cmd_ = "hose_pose";
-    
+
     // Working frame id
     std::string frame_id_ = "world_odom";
 
@@ -302,6 +303,32 @@ namespace myfsm
   class Push_Fail: public MacroState
   {
     virtual std::string get_name () const {return "Push_Fail";}
+
+    virtual void run (double time, double period);
+
+    virtual void entry (const XBot::FSM::Message& msg);
+
+    virtual void react (const XBot::FSM::Event& e);
+
+    virtual void exit ();
+  };
+
+  class Home_LH: public MacroState
+  {
+    virtual std::string get_name () const {return "Home_LH";}
+
+    virtual void run (double time, double period);
+
+    virtual void entry (const XBot::FSM::Message& msg);
+
+    virtual void react (const XBot::FSM::Event& e);
+
+    virtual void exit ();
+  };
+
+  class Home_RH: public MacroState
+  {
+    virtual std::string get_name () const {return "Home_RH";}
 
     virtual void run (double time, double period);
 

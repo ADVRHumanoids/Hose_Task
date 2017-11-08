@@ -44,17 +44,17 @@ Hose_Task::init_control_plugin (std::string path_to_config_file,
    * the current date/time is always appended to the provided filename,
    * so that logs do not overwrite each other.
    */
-  
+
   _logger = XBot::MatLogger::getLogger("/tmp/Hose_Task_log");
-  
+
   // ROS initialization
   int argc = 1;
   const char *arg = "dummy_arg";
   char* argg = const_cast<char*>(arg);
   char** argv = &argg;
-  
+
   ros::init(argc, argv, "Hose_Task");
-  
+
   ros::NodeHandle* node_handle = new ros::NodeHandle;
   _nh = std::shared_ptr<ros::NodeHandle>(node_handle);
   fsm.shared_data()._client = _nh->serviceClient<ADVR_ROS::advr_segment_control>("segment_control");
@@ -80,7 +80,9 @@ Hose_Task::init_control_plugin (std::string path_to_config_file,
   fsm.register_state(std::make_shared<myfsm::Grasp_Fail>());
   fsm.register_state(std::make_shared<myfsm::Orient_Fail>());
   fsm.register_state(std::make_shared<myfsm::Push_Fail>());
-  
+  fsm.register_state(std::make_shared<myfsm::Home_LH>());
+  fsm.register_state(std::make_shared<myfsm::Home_RH>());
+
   if(!_robot->getRobotState("home", fsm.shared_data().state[0]))
   {
     /* If the requested configuration does not exist within the SRDF file,
@@ -88,12 +90,12 @@ Hose_Task::init_control_plugin (std::string path_to_config_file,
     std::cout <<"This gives false" << std::endl;
     return false;
   }
-  
+
   _robot->getJointPosition(fsm.shared_data()._q0);
 
   // Initialize the FSM with the initial state
   fsm.init("Home");
-  
+
   return true;
 }
 
@@ -109,7 +111,7 @@ Hose_Task::on_start (double time)
   /* Save the plugin starting time to a class member */
   //_robot->getMotorPosition(_q0);
   _robot->getMotorPosition(fsm.shared_data()._q0);
-  
+
   /* Save the robot starting config to a class member */
   _start_time = time;
 }
@@ -132,9 +134,9 @@ Hose_Task::control_loop (double time, double period)
    * Since this function is called within the real-time loop, you should not perform
    * operations that are not rt-safe.
    */
-  
+
   fsm.run(time, 0.01);
-  
+
   // Spin ROS
   ros::spinOnce();
 }

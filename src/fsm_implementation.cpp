@@ -42,18 +42,18 @@ myfsm::Home::run (double time, double period)
   {
     // Home the robot
     localTimer = localTimer >1 ? 1: localTimer;
-    
+
     // Set the robot's position references taken from its state
     shared_data()._robot->setPositionReference
       (shared_data()._q0+localTimer*(shared_data().state[0]-shared_data()._q0));
     shared_data()._robot->move();
-    
+
     if (localTimer == 1)
     {
       // Homing finished, so move to the ne state
       shared_data()._robot->getJointPosition(shared_data()._q0);
       localTimer = 0;
-      
+
       // New state transit
       transit ("Move_LH");
     }
@@ -90,9 +90,9 @@ myfsm::Move_LH::entry (const XBot::FSM::Message& msg)
   std::cout << "Pub /hose_pose for left hand..." << std::endl;
 
   // Wait for RH_Pose, i.e. the Hose Grasp Pose (hose_grasp_pose)
-  shared_data ()._hose_grasp_pose =
-    ros::topic::waitForMessage<geometry_msgs::PoseStamped>
-      (shared_data ().pose_cmd_);
+  ADVR_ROS::im_pose_msg::ConstPtr tmp;
+  tmp = ros::topic::waitForMessage<ADVR_ROS::im_pose_msg>(shared_data ().pose_cmd_);
+  shared_data()._hose_grasp_pose =  boost::shared_ptr<geometry_msgs::PoseStamped>(new geometry_msgs::PoseStamped(tmp->pose_stamped));
 
   // Move LH to LH_Pose (1 mid point in the z-axis fixed dist)
 
@@ -116,7 +116,7 @@ myfsm::Move_LH::entry (const XBot::FSM::Message& msg)
   shared_data().sl_hand_pose = hand_pose;
   shared_data()._robot->model().getPose("RSoftHand", r_hand_pose);
   shared_data().sr_hand_pose = r_hand_pose;
-  
+
   // Transform from Eigen::Affine3d to geometry_msgs::Pose
   tf::poseEigenToMsg (hand_pose, start_hand_pose);
   tf::poseEigenToMsg (r_hand_pose, r_start_hand_pose);
@@ -126,31 +126,31 @@ myfsm::Move_LH::entry (const XBot::FSM::Message& msg)
   start_hand_pose_stamped.pose = start_hand_pose;
   geometry_msgs::PoseStamped r_start_hand_pose_stamped;
   r_start_hand_pose_stamped.pose = r_start_hand_pose;
-  
+
   // Create the Cartesian trajectories
   trajectory_utils::Cartesian start_traj;
   start_traj.distal_frame = "LSoftHand";
   start_traj.frame = start_hand_pose_stamped;
-  
+
   // define the end frame
   geometry_msgs::PoseStamped end_hand_pose_stamped;
   end_hand_pose_stamped.pose = start_hand_pose;
-  
+
   geometry_msgs::PoseStamped r_end_hand_pose_stamped;
   r_end_hand_pose_stamped.pose = r_start_hand_pose;
-  
+
   end_hand_pose_stamped.pose.position =
     shared_data()._hose_grasp_pose->pose.position;
   end_hand_pose_stamped.pose.position.z += 0.2;
-  
+
   //end_hand_pose_stamped.pose.orientation =
   //  shared_data()._hose_grasp_pose->pose.orientation;
- 
+
   end_hand_pose_stamped.pose.orientation.x =  0.094453573229;
   end_hand_pose_stamped.pose.orientation.y = -0.324954947790;
   end_hand_pose_stamped.pose.orientation.z = -0.601136949013;
   end_hand_pose_stamped.pose.orientation.w =  0.723959372439;
- 
+
   trajectory_utils::Cartesian end;
   end.distal_frame = "LSoftHand";
   end.frame = end_hand_pose_stamped;
@@ -158,37 +158,37 @@ myfsm::Move_LH::entry (const XBot::FSM::Message& msg)
   // define the first segment
   trajectory_utils::segment s1;
   s1.type.data = 0;        // min jerk traj
-  s1.T.data = 10.0;        // traj duration 1 second      
+  s1.T.data = 10.0;        // traj duration 1 second
   s1.start = start_traj;   // start pose
-  s1.end = end;            // end pose 
+  s1.end = end;            // end pose
 
   start_traj.frame = end_hand_pose_stamped;
-  
+
   end_hand_pose_stamped.pose.position.z =
     shared_data()._hose_grasp_pose->pose.position.z;
   end.frame = end_hand_pose_stamped;
-  
+
   // define the first segment
   trajectory_utils::segment s2;
   s2.type.data = 0;        // min jerk traj
-  s2.T.data = 10.0;        // traj duration 1 second      
+  s2.T.data = 10.0;        // traj duration 1 second
   s2.start = start_traj;   // start pose
-  s2.end = end;            // end pose 
-  
+  s2.end = end;            // end pose
+
   // only one segment in this example
   std::vector<trajectory_utils::segment> segments;
   segments.push_back (s1);
   segments.push_back (s2);
-  
+
   // prapere the advr_segment_control
   ADVR_ROS::advr_segment_control srv;
   srv.request.segment_trj.header.frame_id = shared_data ().frame_id_;
   srv.request.segment_trj.header.stamp = ros::Time::now();
   srv.request.segment_trj.segments = segments;
-  
+
   // call the service
   shared_data()._client.call(srv);
-  
+
   // save last hand pose
   shared_data()._last_lh_pose =
     boost::shared_ptr<geometry_msgs::PoseStamped>
@@ -196,7 +196,7 @@ myfsm::Move_LH::entry (const XBot::FSM::Message& msg)
   shared_data()._last_rh_pose =
     boost::shared_ptr<geometry_msgs::PoseStamped>
       (new geometry_msgs::PoseStamped (r_end_hand_pose_stamped));
-      
+
   // Info msg
   std::cout << "Send \"lh_move_fail\" or \"success\" msg..." << std::endl;
 }
@@ -213,10 +213,13 @@ myfsm::Move_LH::run (double time, double period)
     // LH Move failed
     if (!shared_data().current_command.str().compare("lh_move_fail"))
       transit ("Move_LH");
-    
+
     // LH Move Succeeded
     if (!shared_data().current_command.str().compare("success"))
       transit ("Grasp_LH");
+
+      if (!shared_data().current_command.str().compare ("home_left_hand"))
+        transit("Home_LH");
   }
 }
 
@@ -243,7 +246,7 @@ myfsm::Grasp_LH::entry (const XBot::FSM::Message& msg)
   srv.request.right_grasp = 1.0; // right hand: opened
   srv.request.left_grasp = 1.0;  // left hand: closed
   shared_data ()._grasp_client.call (srv); // call the service
-  
+
   // Info msg
   std::cout << "Send \"lh_grasp_fail\" or \"success\" msg..." << std::endl;
 }
@@ -270,6 +273,9 @@ myfsm::Grasp_LH::run (double time, double period)
     // LH Grasped Succeeded
     if (!shared_data().current_command.str().compare("success"))
       transit ("Grasp_LH_Done");
+
+    if (!shared_data().current_command.str().compare ("home_left_hand"))
+        transit("Home_LH");
   }
 }
 
@@ -296,17 +302,17 @@ myfsm::Grasp_LH_Done::entry (const XBot::FSM::Message& msg)
   // Define the start frame as geometry_msgs::PoseStamped
   geometry_msgs::PoseStamped start_hand_pose_stamped;
   start_hand_pose_stamped = *shared_data()._last_lh_pose;
-  
+
   // Create the Cartesian trajectories
   trajectory_utils::Cartesian start_traj;
   start_traj.distal_frame = "LSoftHand";
   start_traj.frame = start_hand_pose_stamped;
-  
+
   // define the end frame
   geometry_msgs::PoseStamped end_hand_pose_stamped;
   end_hand_pose_stamped.pose = start_hand_pose_stamped.pose;
   end_hand_pose_stamped.pose.position.z += 0.1;
-  
+
   trajectory_utils::Cartesian end;
   end.distal_frame = "LSoftHand";
   end.frame = end_hand_pose_stamped;
@@ -314,28 +320,28 @@ myfsm::Grasp_LH_Done::entry (const XBot::FSM::Message& msg)
   // define the first segment
   trajectory_utils::segment s1;
   s1.type.data = 0;        // min jerk traj
-  s1.T.data = 5.0;        // traj duration 1 second      
+  s1.T.data = 5.0;        // traj duration 1 second
   s1.start = start_traj;   // start pose
-  s1.end = end;            // end pose   
-  
+  s1.end = end;            // end pose
+
   // only one segment in this example
   std::vector<trajectory_utils::segment> segments;
   segments.push_back (s1);
-  
+
   // prapere the advr_segment_control
   ADVR_ROS::advr_segment_control srv;
   srv.request.segment_trj.header.frame_id = shared_data ().frame_id_;
   srv.request.segment_trj.header.stamp = ros::Time::now();
   srv.request.segment_trj.segments = segments;
-  
+
   // call the service
   shared_data()._client.call(srv);
-  
+
   // save last hand pose
   shared_data()._last_lh_pose =
     boost::shared_ptr<geometry_msgs::PoseStamped>
       (new geometry_msgs::PoseStamped (end_hand_pose_stamped));
-      
+
   // Info msg
   std::cout << "Send \"success\" msg..." << std::endl;
 }
@@ -353,16 +359,18 @@ myfsm::Grasp_LH_Done::run (double time, double period)
     // RH Move failed
     //bool grasp_rh_fail = false;
     //bool move_rh_fail = false;
-  
+
     //if (grasp_rh_fail)
     //  transit("Grasp_Fail");
-    
+
     //if (move_rh_fail)
     //  transit("Move_Fail");
-    
+
     // RH Move Succeeded
     if (!shared_data ().current_command.str().compare ("success"))
       transit("Orient_LH");
+    if (!shared_data().current_command.str().compare ("home_left_hand"))
+        transit("Home_LH");
   }
 }
 
@@ -388,26 +396,27 @@ myfsm::Orient_LH::entry (const XBot::FSM::Message& msg)
   std::cout << "Pub /hose_pose for left hand orientation..." << std::endl;
 
   //Wait for RH_Pose (orientation)
-  shared_data()._hose_grasp_pose =
-    ros::topic::waitForMessage<geometry_msgs::PoseStamped>
-      (shared_data ().pose_cmd_);
+  ADVR_ROS::im_pose_msg::ConstPtr tmp;
+  tmp = ros::topic::waitForMessage<ADVR_ROS::im_pose_msg>(shared_data ().pose_cmd_);
+  shared_data()._hose_grasp_pose =  boost::shared_ptr<geometry_msgs::PoseStamped>(new geometry_msgs::PoseStamped(tmp->pose_stamped));
+
 
   // Define the start frame as geometry_msgs::PoseStamped
   geometry_msgs::PoseStamped start_hand_pose_stamped;
   start_hand_pose_stamped = *shared_data()._last_lh_pose;
-  
+
   // Create the Cartesian trajectories
   trajectory_utils::Cartesian start_traj;
   start_traj.distal_frame = "LSoftHand";
   start_traj.frame = start_hand_pose_stamped;
-  
+
   // define the end frame
   geometry_msgs::PoseStamped end_hand_pose_stamped;
   end_hand_pose_stamped.pose = start_hand_pose_stamped.pose;
-      
-  //end_hand_pose_stamped.pose.orientation =
-  //  shared_data()._hose_grasp_pose->pose.orientation;
-  
+
+  end_hand_pose_stamped.pose.orientation =
+    shared_data()._hose_grasp_pose->pose.orientation;
+
   trajectory_utils::Cartesian end;
   end.distal_frame = "LSoftHand";
   end.frame = end_hand_pose_stamped;
@@ -415,28 +424,28 @@ myfsm::Orient_LH::entry (const XBot::FSM::Message& msg)
   // define the first segment
   trajectory_utils::segment s1;
   s1.type.data = 0;        // min jerk traj
-  s1.T.data = 5.0;         // traj duration     
+  s1.T.data = 5.0;         // traj duration
   s1.start = start_traj;   // start pose
-  s1.end = end;            // end pose   
-  
+  s1.end = end;            // end pose
+
   // only one segment in this example
   std::vector<trajectory_utils::segment> segments;
   segments.push_back (s1);
-  
+
   // prapere the advr_segment_control
   ADVR_ROS::advr_segment_control srv;
   srv.request.segment_trj.header.frame_id = shared_data ().frame_id_;
   srv.request.segment_trj.header.stamp = ros::Time::now();
   srv.request.segment_trj.segments = segments;
-  
+
   // call the service
   shared_data()._client.call(srv);
-  
+
   // save last hand pose
   shared_data()._last_lh_pose =
     boost::shared_ptr<geometry_msgs::PoseStamped>
       (new geometry_msgs::PoseStamped (end_hand_pose_stamped));
-  
+
   // Info msg
   std::cout << "Send \"success\" msg..." << std::endl;
 }
@@ -444,15 +453,18 @@ myfsm::Orient_LH::entry (const XBot::FSM::Message& msg)
 ///////////////////////////////////////////////////////////////////////////////
 void
 myfsm::Orient_LH::run (double time, double period)
-{  
+{
   // Blocking Reading: wait for a command
   if(shared_data().command.read(shared_data().current_command))
   {
     std::cout << "Command: " << shared_data().current_command.str() << std::endl;
-    
+
     // RH Move Succeeded
     if (!shared_data().current_command.str().compare("success"))
       transit("Orient_LH_Done");
+
+    if (!shared_data().current_command.str().compare ("home_left_hand"))
+      transit("Home_LH");
   }
 }
 
@@ -481,12 +493,12 @@ myfsm::Orient_LH_Done::entry (const XBot::FSM::Message& msg)
 void
 myfsm::Orient_LH_Done::run (double time, double period)
 {
-  
+
   //TBD: Check if the RH orientation has failed
   //bool orient_fail = false;
   //if (orient_fail)
   //  transit("Orient_Fail");
-  
+
   transit("Move_RH");
 }
 
@@ -512,34 +524,34 @@ myfsm::Move_RH::entry (const XBot::FSM::Message& msg)
   std::cout << "Pub /hose_pose for right hand orientation..." << std::endl;
 
   //Wait RH_Pose
-  shared_data()._hose_grasp_pose =
-    ros::topic::waitForMessage<geometry_msgs::PoseStamped>
-      (shared_data ().pose_cmd_);
-      
+  ADVR_ROS::im_pose_msg::ConstPtr tmp;
+  tmp = ros::topic::waitForMessage<ADVR_ROS::im_pose_msg>(shared_data ().pose_cmd_);
+  shared_data()._hose_grasp_pose =  boost::shared_ptr<geometry_msgs::PoseStamped>(new geometry_msgs::PoseStamped(tmp->pose_stamped));
+
   // Define the start frame as geometry_msgs::PoseStamped
   geometry_msgs::PoseStamped start_hand_pose_stamped;
   start_hand_pose_stamped = *shared_data()._last_rh_pose;
-  
+
   // Create the Cartesian trajectories
   trajectory_utils::Cartesian start_traj;
   start_traj.distal_frame = "RSoftHand";
   start_traj.frame = start_hand_pose_stamped;
-  
+
   // define the end frame
   geometry_msgs::PoseStamped end_hand_pose_stamped;
   end_hand_pose_stamped.pose.position =
     shared_data()._hose_grasp_pose->pose.position;
-    
+
   std::cout << "end_hand_pose_stamped.pose.position: "
             << end_hand_pose_stamped.pose.position.x << ","
             << end_hand_pose_stamped.pose.position.y << ","
             << end_hand_pose_stamped.pose.position.z << std::endl;
-            
+
   end_hand_pose_stamped.pose.orientation.x = 0.0;
   end_hand_pose_stamped.pose.orientation.y = -0.7071;
   end_hand_pose_stamped.pose.orientation.z = 0.0;
   end_hand_pose_stamped.pose.orientation.w = 0.7071;
-  
+
   trajectory_utils::Cartesian end;
   end.distal_frame = "RSoftHand";
   end.frame = end_hand_pose_stamped;
@@ -547,33 +559,33 @@ myfsm::Move_RH::entry (const XBot::FSM::Message& msg)
   // define the first segment
   trajectory_utils::segment s1;
   s1.type.data = 0;        // min jerk traj
-  s1.T.data = 5.0;         // traj duration     
+  s1.T.data = 5.0;         // traj duration
   s1.start = start_traj;   // start pose
-  s1.end = end;            // end pose   
-  
+  s1.end = end;            // end pose
+
   // only one segment in this example
   std::vector<trajectory_utils::segment> segments;
   segments.push_back (s1);
-  
+
   // prapere the advr_segment_control
   ADVR_ROS::advr_segment_control srv;
   srv.request.segment_trj.header.frame_id = shared_data ().frame_id_;
   srv.request.segment_trj.header.stamp = ros::Time::now();
   srv.request.segment_trj.segments = segments;
-  
+
   // call the service
   shared_data()._client.call(srv);
-  
+
   // save last hand pose
   shared_data()._last_rh_pose =
     boost::shared_ptr<geometry_msgs::PoseStamped>
       (new geometry_msgs::PoseStamped (end_hand_pose_stamped));
-   
+
   std::cout << "saved end_hand_pose_stamped.pose.position: "
             << end_hand_pose_stamped.pose.position.x << ","
             << end_hand_pose_stamped.pose.position.y << ","
             << end_hand_pose_stamped.pose.position.z << std::endl;
-  
+
   // Info msg
   std::cout << "Send \"success\" msg..." << std::endl;
 }
@@ -581,7 +593,7 @@ myfsm::Move_RH::entry (const XBot::FSM::Message& msg)
 ///////////////////////////////////////////////////////////////////////////////
 void
 myfsm::Move_RH::run (double time, double period)
-{    
+{
   // Blocking Reading: wait for a command
   if(shared_data().command.read(shared_data().current_command))
   {
@@ -590,6 +602,10 @@ myfsm::Move_RH::run (double time, double period)
     // LH Move Succeeded
     if (!shared_data().current_command.str().compare ("success"))
       transit("Push_RH");
+    if (!shared_data().current_command.str().compare ("home_left_hand"))
+        transit("Home_LH");
+    if (!shared_data().current_command.str().compare ("home_right_hand"))
+        transit("Home_RH");
   }
 }
 
@@ -612,49 +628,49 @@ void
 myfsm::Push_RH::entry (const XBot::FSM::Message& msg)
 {
   std::cout << "State: Push_RH::entry" << std::endl;
-  
+
   // Info msg
   std::cout << "Send \"success\" msg..." << std::endl;
-  
+
   // Define the start frame as geometry_msgs::PoseStamped
   geometry_msgs::PoseStamped start_hand_pose_stamped;
   start_hand_pose_stamped = *shared_data()._last_rh_pose;
-  
+
   std::cout << "loaded start_hand_pose_stamped.pose.position: "
             << start_hand_pose_stamped.pose.position.x << ","
             << start_hand_pose_stamped.pose.position.y << ","
             << start_hand_pose_stamped.pose.position.z << std::endl;
-  
+
   // Create the Cartesian trajectories
   trajectory_utils::Cartesian start_traj;
   start_traj.distal_frame = "RSoftHand";
   start_traj.frame = start_hand_pose_stamped;
-  
+
   // define the end frame
   geometry_msgs::PoseStamped end_hand_pose_stamped;
   end_hand_pose_stamped.pose.position =
     start_hand_pose_stamped.pose.position;
-      
+
   end_hand_pose_stamped.pose.orientation.x = 0.0;
   end_hand_pose_stamped.pose.orientation.y = -0.7071;
   end_hand_pose_stamped.pose.orientation.z = 0.0;
   end_hand_pose_stamped.pose.orientation.w = 0.7071;
-  
+
   trajectory_utils::Cartesian end_traj;
   end_traj.distal_frame = "RSoftHand";
   end_traj.frame = end_hand_pose_stamped;
-  
+
   // define the first segment
   std::vector<trajectory_utils::segment> segments;
   trajectory_utils::segment s1;
   s1.type.data = 0;        // min jerk traj
   s1.T.data = 1.0;         // traj duration
-  
+
   for (int i=0; i<5; i++)
   {
     //start_traj.distal_frame = "RSoftHand";
     start_traj.frame = end_hand_pose_stamped;
-    
+
     std::cout << "S end_frame.pose.position.z: "
               << end_hand_pose_stamped.pose.position.z
               << std::endl;
@@ -668,16 +684,16 @@ myfsm::Push_RH::entry (const XBot::FSM::Message& msg)
     s1.end = end_traj;       // end pose
     segments.push_back (s1);
   }
-  
+
   // prapere the advr_segment_control
   ADVR_ROS::advr_segment_control srv;
   srv.request.segment_trj.header.frame_id = shared_data ().frame_id_;
   srv.request.segment_trj.header.stamp = ros::Time::now();
   srv.request.segment_trj.segments = segments;
-  
+
   // call the service
   shared_data()._client.call(srv);
-  
+
   // save last hand pose
   shared_data()._last_rh_pose =
     boost::shared_ptr<geometry_msgs::PoseStamped>
@@ -691,12 +707,12 @@ myfsm::Push_RH::run (double time, double period)
   //TBD: check if the orientation or mnove has failed
   bool orient_fail = false;
   bool push_fail = false;
-  
+
   if (push_fail)
     transit("Push_Fail");
   else if (orient_fail)
     transit("Orient_Fail");
-  
+
   // Blocking Reading: wait for a command
   if(shared_data().command.read(shared_data().current_command))
   {
@@ -705,13 +721,17 @@ myfsm::Push_RH::run (double time, double period)
     // LH Move Succeeded
     if (!shared_data().current_command.str().compare ("success"))
       transit("Push_RH_Done");
+    if (!shared_data().current_command.str().compare ("home_left_hand"))
+          transit("Home_LH");
+    if (!shared_data().current_command.str().compare ("home_right_hand"))
+          transit("Home_RH");
   }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 void
 myfsm::Push_RH::exit ()
-{  
+{
   std::cout << "State: Push_RH::exit" << std::endl;
 }
 
@@ -742,15 +762,19 @@ myfsm::Push_RH_Done::run (double time, double period)
     // LH Move Succeeded
     if (!shared_data().current_command.str().compare ("success"))
       transit("Push_RH_Done");
+    if (!shared_data().current_command.str().compare ("home_left_hand"))
+          transit("Home_LH");
+    if (!shared_data().current_command.str().compare ("home_right_hand"))
+          transit("Home_RH");
   }
-  
+
   //TBD: Ungrasp both hands
   ADVR_ROS::advr_grasp_control_srv srv;
   srv.request.right_grasp = 0.0;
   srv.request.left_grasp = 0.0;
   // call the service
   shared_data ()._grasp_client.call(srv);
-  
+
   //transit("Homing");
 }
 
@@ -798,24 +822,24 @@ myfsm::Homing::entry (const XBot::FSM::Message& msg)
 
   // Get hand pose
   shared_data()._robot->model().getPose("LSoftHand", hand_pose);
-  
+
   // Transform from Eigen::Affine3d to geometry_msgs::Pose
   tf::poseEigenToMsg (hand_pose, start_hand_pose);
 
   // Define the start frame as geometry_msgs::PoseStamped
   geometry_msgs::PoseStamped start_hand_pose_stamped;
   start_hand_pose_stamped.pose = start_hand_pose;
-  
+
   // Create the Cartesian trajectories
   trajectory_utils::Cartesian start_traj;
   start_traj.distal_frame = "LSoftHand";
   start_traj.frame = start_hand_pose_stamped;
-  
+
   // define the end frame
   geometry_msgs::PoseStamped end_hand_pose_stamped;
   tf::poseEigenToMsg (shared_data().sl_hand_pose, end_hand_pose_stamped.pose);
 
-  
+
   trajectory_utils::Cartesian end;
   end.distal_frame = "LSoftHand";
   end.frame = end_hand_pose_stamped;
@@ -824,28 +848,28 @@ myfsm::Homing::entry (const XBot::FSM::Message& msg)
   // define the first segment
   trajectory_utils::segment s1;
   s1.type.data = 0;        // min jerk traj
-  s1.T.data = 5.0;        // traj duration 1 second      
+  s1.T.data = 5.0;        // traj duration 1 second
   s1.start = start_traj;   // start pose
   s1.end = end;            // end pose
-  
+
   // only one segment in this example
   std::vector<trajectory_utils::segment> segments;
   segments.push_back (s1);
-  
+
   // prapere the advr_segment_control
   ADVR_ROS::advr_segment_control srv;
   srv.request.segment_trj.header.frame_id = shared_data ().frame_id_;
   srv.request.segment_trj.header.stamp = ros::Time::now();
   srv.request.segment_trj.segments = segments;
-  
+
   // call the service
   shared_data()._client.call(srv);
-  
+
   std::cout << "Send \"success\" msg..." << std::endl;
   if(shared_data().command.read(shared_data().current_command))
   {
     std::cout << "Command: " << shared_data().current_command.str() << std::endl;
-  
+
   if (!shared_data().current_command.str().compare("success"))
   {
     // Home right hand
@@ -864,24 +888,24 @@ myfsm::Homing::entry (const XBot::FSM::Message& msg)
 
     // Get hand pose
     shared_data()._robot->model().getPose("RSoftHand", hand_pose_r);
-    
+
     // Transform from Eigen::Affine3d to geometry_msgs::Pose
     tf::poseEigenToMsg (hand_pose_r, start_hand_pose_r);
 
     // Define the start frame as geometry_msgs::PoseStamped
     geometry_msgs::PoseStamped start_hand_pose_stamped_r;
     start_hand_pose_stamped_r.pose = start_hand_pose_r;
-    
+
     // Create the Cartesian trajectories
     trajectory_utils::Cartesian start_traj_r;
     start_traj_r.distal_frame = "RSoftHand";
     start_traj_r.frame = start_hand_pose_stamped_r;
-    
+
     // define the end frame
     geometry_msgs::PoseStamped end_hand_pose_stamped_r;
     tf::poseEigenToMsg (shared_data().sr_hand_pose, end_hand_pose_stamped_r.pose);
 
-    
+
     trajectory_utils::Cartesian end_r;
     end_r.distal_frame = "RSoftHand";
     end_r.frame = end_hand_pose_stamped_r;
@@ -890,20 +914,20 @@ myfsm::Homing::entry (const XBot::FSM::Message& msg)
     // define the first segment
     trajectory_utils::segment s_r;
     s_r.type.data = 0;        // min jerk traj
-    s_r.T.data = 5.0;         // traj duration 1 second      
+    s_r.T.data = 5.0;         // traj duration 1 second
     s_r.start = start_traj_r; // start pose
     s_r.end = end_r;          // end pose
-    
+
     // only one segment in this example
     std::vector<trajectory_utils::segment> segments_r;
     segments_r.push_back (s_r);
-    
+
     // prapere the advr_segment_control
     ADVR_ROS::advr_segment_control srv_r;
     srv_r.request.segment_trj.header.frame_id = shared_data ().frame_id_;
     srv_r.request.segment_trj.header.stamp = ros::Time::now();
     srv_r.request.segment_trj.segments = segments_r;
-    
+
     // call the service
     shared_data()._client.call (srv_r);
     }
@@ -943,7 +967,7 @@ void
 myfsm::Move_Fail::run (double time, double period)
 {
   std::cout << "Move_Fail run" << std::endl;
-  
+
   //TBD: ungrasp RH
   //TBD: Home RH
   transit("Home");
@@ -970,7 +994,7 @@ myfsm::Grasp_Fail::run (double time, double period)
 {
   std::cout << "Grasp_Fail run" << std::endl;
   //TBD: ungrasp RH
-  
+
   transit("Grasp_LH");
 }
 
@@ -995,7 +1019,7 @@ void
 myfsm::Orient_Fail::run (double time, double period)
 {
   std::cout << "Orient_Fail run" << std::endl;
-  
+
   transit("Grasp_LH_Done");
 }
 
@@ -1020,14 +1044,174 @@ void
 myfsm::Push_Fail::run (double time, double period)
 {
   std::cout << "Push_Fail run" << std::endl;
-  
+
   //TBD: Home LH
 
   transit("Orient_Fail");
 }
 
+void myfsm::Push_Fail::exit (){};
+
 ///////////////////////////////////////////////////////////////////////////////
 void
-myfsm::Push_Fail::exit () {}
+myfsm::Home_LH::exit () {}
 
-/*END Push_Fail*/
+void
+myfsm::Home_LH::react (const XBot::FSM::Event& e) {}
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Home_LH::entry (const XBot::FSM::Message& msg)
+{
+  ADVR_ROS::advr_grasp_control_srv grasp_srv;
+  grasp_srv.request.left_grasp = 0.0; // left hand: opened
+  shared_data ()._grasp_client.call (grasp_srv); // call the service
+
+  geometry_msgs::PoseStamped start_hand_pose_stamped;
+  start_hand_pose_stamped = *shared_data()._last_lh_pose;
+
+  // Create the Cartesian trajectories
+  trajectory_utils::Cartesian start_traj;
+  start_traj.distal_frame = "LSoftHand";
+  start_traj.frame = start_hand_pose_stamped;
+
+  // define the end frame
+
+
+  geometry_msgs::PoseStamped end_hand_pose_stamped;
+  tf::poseEigenToMsg (shared_data().sl_hand_pose, end_hand_pose_stamped.pose);
+
+
+  //end_hand_pose_stamped.pose.orientation =
+  //  shared_data()._hose_grasp_pose->pose.orientation;
+
+  trajectory_utils::Cartesian end;
+  end.distal_frame = "LSoftHand";
+  end.frame = end_hand_pose_stamped;
+
+  // define the first segment
+  trajectory_utils::segment s1;
+  s1.type.data = 0;        // min jerk traj
+  s1.T.data = 5.0;         // traj duration
+  s1.start = start_traj;   // start pose
+  s1.end = end;            // end pose
+
+  // only one segment in this example
+  std::vector<trajectory_utils::segment> segments;
+  segments.push_back (s1);
+
+  // prapere the advr_segment_control
+  ADVR_ROS::advr_segment_control srv;
+  srv.request.segment_trj.header.frame_id = shared_data ().frame_id_;
+  srv.request.segment_trj.header.stamp = ros::Time::now();
+  srv.request.segment_trj.segments = segments;
+
+  // call the service
+  shared_data()._client.call(srv);
+
+  // save last hand pose
+  shared_data()._last_lh_pose =
+    boost::shared_ptr<geometry_msgs::PoseStamped>
+      (new geometry_msgs::PoseStamped (end_hand_pose_stamped));
+
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Home_LH::run (double time, double period)
+{
+  if(shared_data().command.read(shared_data().current_command))
+  {
+    std::cout << "Command: " << shared_data().current_command.str() << std::endl;
+
+    // Home RH Succeeded
+    if (!shared_data().current_command.str().compare ("success"))
+      transit("Move_LH");
+  }
+
+}
+
+
+/*END Home_LH*/
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Home_RH::exit () {}
+
+void
+myfsm::Home_RH::react (const XBot::FSM::Event& e) {}
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Home_RH::entry (const XBot::FSM::Message& msg)
+{
+  ADVR_ROS::advr_grasp_control_srv grasp_srv;
+  grasp_srv.request.right_grasp = 0.0; // right hand: opened
+  shared_data ()._grasp_client.call (grasp_srv); // call the service
+
+  geometry_msgs::PoseStamped start_hand_pose_stamped;
+  start_hand_pose_stamped = *shared_data()._last_rh_pose;
+
+  // Create the Cartesian trajectories
+  trajectory_utils::Cartesian start_traj;
+  start_traj.distal_frame = "RSoftHand";
+  start_traj.frame = start_hand_pose_stamped;
+
+  // define the end frame
+
+
+  geometry_msgs::PoseStamped end_hand_pose_stamped;
+  tf::poseEigenToMsg (shared_data().sr_hand_pose, end_hand_pose_stamped.pose);
+
+
+  //end_hand_pose_stamped.pose.orientation =
+  //  shared_data()._hose_grasp_pose->pose.orientation;
+
+  trajectory_utils::Cartesian end;
+  end.distal_frame = "RSoftHand";
+  end.frame = end_hand_pose_stamped;
+
+  // define the first segment
+  trajectory_utils::segment s1;
+  s1.type.data = 0;        // min jerk traj
+  s1.T.data = 5.0;         // traj duration
+  s1.start = start_traj;   // start pose
+  s1.end = end;            // end pose
+
+  // only one segment in this example
+  std::vector<trajectory_utils::segment> segments;
+  segments.push_back (s1);
+
+  // prapere the advr_segment_control
+  ADVR_ROS::advr_segment_control srv;
+  srv.request.segment_trj.header.frame_id = shared_data ().frame_id_;
+  srv.request.segment_trj.header.stamp = ros::Time::now();
+  srv.request.segment_trj.segments = segments;
+
+  // call the service
+  shared_data()._client.call(srv);
+
+  // save last hand pose
+  shared_data()._last_lh_pose =
+    boost::shared_ptr<geometry_msgs::PoseStamped>
+      (new geometry_msgs::PoseStamped (end_hand_pose_stamped));
+
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void
+myfsm::Home_RH::run (double time, double period)
+{
+  if(shared_data().command.read(shared_data().current_command))
+  {
+    std::cout << "Command: " << shared_data().current_command.str() << std::endl;
+
+    // RH home succeeded Succeeded
+    if (!shared_data().current_command.str().compare ("success"))
+      transit("Move_RH");
+  }
+
+}
+
+
+/*END Home_LH*/
