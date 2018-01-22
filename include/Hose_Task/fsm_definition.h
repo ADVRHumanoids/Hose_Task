@@ -98,8 +98,7 @@ namespace myfsm
     ros::Publisher _grasp_mag_pub;
 
     // Input commands
-    XBot::SubscriberRT<XBot::Command> command;
-    XBot::Command current_command;
+    std::shared_ptr<XBot::Command> current_command;
 
     // Starting left and right hand poses
     Eigen::Affine3d sl_hand_pose, sr_hand_pose;

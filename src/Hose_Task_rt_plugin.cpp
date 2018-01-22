@@ -25,9 +25,7 @@ REGISTER_XBOT_PLUGIN(Hose_Task, XBotPlugin::Hose_Task)
 namespace XBotPlugin {
 
 bool
-Hose_Task::init_control_plugin (std::string path_to_config_file,
-                                XBot::SharedMemory::Ptr shared_memory,
-                                XBot::RobotInterface::Ptr robot)
+Hose_Task::init_control_plugin (XBot::Handle::Ptr handle)
 {
   /* This function is called outside the real time loop, so we can
    * allocate memory on the heap, print stuff, ...
@@ -36,9 +34,8 @@ Hose_Task::init_control_plugin (std::string path_to_config_file,
 
 
   /* Save robot to a private member. */
-  _robot = robot;
-  fsm.shared_data().command = command;
-  fsm.shared_data().current_command = current_command;
+  _robot = handle->getRobotInterface();
+  fsm.shared_data().current_command = std::shared_ptr<XBot::Command>(&current_command);
 
   /* Initialize a logger which saves to the specified file. Remember that
    * the current date/time is always appended to the provided filename,
@@ -63,7 +60,7 @@ Hose_Task::init_control_plugin (std::string path_to_config_file,
 
 
   /*Saves robot as shared variable between states*/
-  fsm.shared_data()._robot= robot;
+  fsm.shared_data()._robot= handle->getRobotInterface();
 
   /*Registers states*/
   fsm.register_state(std::make_shared<myfsm::Home>());
