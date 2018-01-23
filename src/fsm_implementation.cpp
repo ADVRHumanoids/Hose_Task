@@ -256,9 +256,9 @@ void
 myfsm::Grasp_LH::run (double time, double period)
 {
   // Blocking Reading: wait for a command
-  if(shared_data().current_command->str().empty())
+  if(!shared_data().current_command->str().empty())
   {
-    std::cout << "Command: " << shared_data().current_command->str() << std::endl;
+    //std::cout << "Command: " << shared_data().current_command->str() << std::endl;
 
     // LH Grasped failed
     if (!shared_data().current_command->str().compare("lh_grasp_fail"))
@@ -351,7 +351,7 @@ void
 myfsm::Grasp_LH_Done::run (double time, double period)
 {
   // Blocking Reading: wait for a command
-  if(shared_data().current_command->str().empty())
+  if(!shared_data().current_command->str().empty())
   {
     std::cout << "Command: " << shared_data ().current_command->str() << std::endl;
 
@@ -455,7 +455,7 @@ void
 myfsm::Orient_LH::run (double time, double period)
 {
   // Blocking Reading: wait for a command
-  if(shared_data().current_command->str().empty() )
+  if(!shared_data().current_command->str().empty() )
   {
     std::cout << "Command: " << shared_data().current_command->str() << std::endl;
 
@@ -595,7 +595,7 @@ void
 myfsm::Move_RH::run (double time, double period)
 {
   // Blocking Reading: wait for a command
-  if(shared_data().current_command->str().empty())
+  if(!shared_data().current_command->str().empty())
   {
     std::cout << "Command: " << shared_data().current_command->str() << std::endl;
 
@@ -714,7 +714,7 @@ myfsm::Push_RH::run (double time, double period)
     transit("Orient_Fail");
 
   // Blocking Reading: wait for a command
-  if(shared_data().current_command->str().empty())
+  if(!shared_data().current_command->str().empty())
   {
     std::cout << "Command: " << shared_data().current_command->str() << std::endl;
 
@@ -755,7 +755,7 @@ void
 myfsm::Push_RH_Done::run (double time, double period)
 {
   // Blocking Reading: wait for a command
-  if(shared_data().current_command->str().empty())
+  if(!shared_data().current_command->str().empty())
   {
     std::cout << "Command: " << shared_data().current_command->str() << std::endl;
 
@@ -866,7 +866,7 @@ myfsm::Homing::entry (const XBot::FSM::Message& msg)
   shared_data()._client.call(srv);
 
   std::cout << "Send \"success\" msg..." << std::endl;
-  if(shared_data().current_command->str().empty())
+  if(!shared_data().current_command->str().empty())
   {
     std::cout << "Command: " << shared_data().current_command->str() << std::endl;
 
@@ -1120,7 +1120,7 @@ myfsm::Home_LH::entry (const XBot::FSM::Message& msg)
 void
 myfsm::Home_LH::run (double time, double period)
 {
-  if(shared_data().current_command->str().empty())
+  if(!shared_data().current_command->str().empty())
   {
     std::cout << "Command: " << shared_data().current_command->str() << std::endl;
 
@@ -1202,7 +1202,7 @@ myfsm::Home_RH::entry (const XBot::FSM::Message& msg)
 void
 myfsm::Home_RH::run (double time, double period)
 {
-  if(shared_data().current_command->str().empty())
+  if(!shared_data().current_command->str().empty())
   {
     std::cout << "Command: " << shared_data().current_command->str() << std::endl;
 
