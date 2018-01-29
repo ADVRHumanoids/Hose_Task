@@ -143,14 +143,14 @@ myfsm::Move_LH::entry (const XBot::FSM::Message& msg)
     shared_data()._hose_grasp_pose->pose.position;
   end_hand_pose_stamped.pose.position.z += 0.2;
 
-  //end_hand_pose_stamped.pose.orientation =
-  //  shared_data()._hose_grasp_pose->pose.orientation;
+  end_hand_pose_stamped.pose.orientation =
+    shared_data()._hose_grasp_pose->pose.orientation;
 
-  end_hand_pose_stamped.pose.orientation.x =  0.094453573229;
+  /*end_hand_pose_stamped.pose.orientation.x =  0.094453573229;
   end_hand_pose_stamped.pose.orientation.y = -0.324954947790;
   end_hand_pose_stamped.pose.orientation.z = -0.601136949013;
   end_hand_pose_stamped.pose.orientation.w =  0.723959372439;
-
+*/
   trajectory_utils::Cartesian end;
   end.distal_frame = "LSoftHand";
   end.frame = end_hand_pose_stamped;
@@ -368,7 +368,7 @@ myfsm::Grasp_LH_Done::run (double time, double period)
 
     // RH Move Succeeded
     if (!shared_data().current_command->str().compare ("success"))
-      transit("Orient_LH");
+      transit("Move_RH");
     if (!shared_data().current_command->str().compare ("home_left_hand"))
         transit("Home_LH");
   }
@@ -416,6 +416,8 @@ myfsm::Orient_LH::entry (const XBot::FSM::Message& msg)
 
   end_hand_pose_stamped.pose.orientation =
     shared_data()._hose_grasp_pose->pose.orientation;
+    end_hand_pose_stamped.pose.position =
+      shared_data()._hose_grasp_pose->pose.position;
 
   trajectory_utils::Cartesian end;
   end.distal_frame = "LSoftHand";
@@ -463,6 +465,9 @@ myfsm::Orient_LH::run (double time, double period)
     if (!shared_data().current_command->str().compare("success"))
       transit("Orient_LH_Done");
 
+    if (!shared_data().current_command->str().compare("lh_orient_fail"))
+        transit("Orient_LH");
+
     if (!shared_data().current_command->str().compare ("home_left_hand"))
       transit("Home_LH");
   }
@@ -499,7 +504,7 @@ myfsm::Orient_LH_Done::run (double time, double period)
   //if (orient_fail)
   //  transit("Orient_Fail");
 
-  transit("Move_RH");
+  transit("Push_RH");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -546,7 +551,9 @@ myfsm::Move_RH::entry (const XBot::FSM::Message& msg)
             << end_hand_pose_stamped.pose.position.x << ","
             << end_hand_pose_stamped.pose.position.y << ","
             << end_hand_pose_stamped.pose.position.z << std::endl;
-
+  end_hand_pose_stamped.pose.position.x/=1.5;
+  end_hand_pose_stamped.pose.position.y/=1.5;
+  end_hand_pose_stamped.pose.position.z+=0.15;
   end_hand_pose_stamped.pose.orientation.x = 0.0;
   end_hand_pose_stamped.pose.orientation.y = -0.7071;
   end_hand_pose_stamped.pose.orientation.z = 0.0;
@@ -563,9 +570,22 @@ myfsm::Move_RH::entry (const XBot::FSM::Message& msg)
   s1.start = start_traj;   // start pose
   s1.end = end;            // end pose
 
+  start_traj.frame = end_hand_pose_stamped;
+  end_hand_pose_stamped.pose.position =
+    shared_data()._hose_grasp_pose->pose.position;
+  end.frame = end_hand_pose_stamped;
+
+  trajectory_utils::segment s2;
+    s2.type.data = 0;        // min jerk traj
+    s2.T.data = 10.0;        // traj duration 1 second
+    s2.start = start_traj;   // start pose
+    s2.end = end;            // end pose
+
+
   // only one segment in this example
   std::vector<trajectory_utils::segment> segments;
   segments.push_back (s1);
+  segments.push_back (s2);
 
   // prapere the advr_segment_control
   ADVR_ROS::advr_segment_control srv;
@@ -601,7 +621,9 @@ myfsm::Move_RH::run (double time, double period)
 
     // LH Move Succeeded
     if (!shared_data().current_command->str().compare ("success"))
-      transit("Push_RH");
+      transit("Orient_LH");
+    if (!shared_data().current_command->str().compare("rh_move_fail"))
+          transit("Move_RH");
     if (!shared_data().current_command->str().compare ("home_left_hand"))
         transit("Home_LH");
     if (!shared_data().current_command->str().compare ("home_right_hand"))
@@ -666,6 +688,14 @@ myfsm::Push_RH::entry (const XBot::FSM::Message& msg)
   s1.type.data = 0;        // min jerk traj
   s1.T.data = 1.0;         // traj duration
 
+  //oly for simulation
+  ADVR_ROS::advr_grasp_control_srv grasp_srv;
+  grasp_srv.request.right_grasp = 0.0;
+  grasp_srv.request.left_grasp = 1.0;
+  // call the service
+  shared_data ()._grasp_client.call(grasp_srv);
+
+
   for (int i=0; i<5; i++)
   {
     //start_traj.distal_frame = "RSoftHand";
@@ -674,7 +704,7 @@ myfsm::Push_RH::entry (const XBot::FSM::Message& msg)
     std::cout << "S end_frame.pose.position.z: "
               << end_hand_pose_stamped.pose.position.z
               << std::endl;
-    end_hand_pose_stamped.pose.position.z -= 0.05*pow(-1,i);
+    end_hand_pose_stamped.pose.position.z -= 0.07*pow(-1,i);
     std::cout << "F end_frame.pose.position.z: "
               << end_hand_pose_stamped.pose.position.z
               << std::endl;
@@ -719,6 +749,10 @@ myfsm::Push_RH::run (double time, double period)
     std::cout << "Command: " << shared_data().current_command->str() << std::endl;
 
     // LH Move Succeeded
+    if (!shared_data().current_command->str().compare ("rh_push_failed"))
+      transit("Move_RH");
+      if (!shared_data().current_command->str().compare ("lh_orient_fail"))
+        transit("Orient_LH");
     if (!shared_data().current_command->str().compare ("success"))
       transit("Push_RH_Done");
     if (!shared_data().current_command->str().compare ("home_left_hand"))
