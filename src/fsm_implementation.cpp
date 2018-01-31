@@ -686,7 +686,7 @@ myfsm::Push_RH::entry (const XBot::FSM::Message& msg)
   std::vector<trajectory_utils::segment> segments;
   trajectory_utils::segment s1;
   s1.type.data = 0;        // min jerk traj
-  s1.T.data = 1.0;         // traj duration
+  s1.T.data = 3.0;         // traj duration
 
   //oly for simulation
   ADVR_ROS::advr_grasp_control_srv grasp_srv;
@@ -782,6 +782,11 @@ void
 myfsm::Push_RH_Done::entry (const XBot::FSM::Message& msg)
 {
   std::cout << "State: Push_RH_Done::entry" << std::endl;
+  ADVR_ROS::advr_grasp_control_srv srv;
+  srv.request.right_grasp = 0.0;
+  srv.request.left_grasp = 0.0;
+  // call the service
+  shared_data ()._grasp_client.call(srv);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -795,7 +800,7 @@ myfsm::Push_RH_Done::run (double time, double period)
 
     // LH Move Succeeded
     if (!shared_data().current_command->str().compare ("success"))
-      transit("Push_RH_Done");
+      transit("Homing");
     if (!shared_data().current_command->str().compare ("home_left_hand"))
           transit("Home_LH");
     if (!shared_data().current_command->str().compare ("home_right_hand"))
@@ -803,11 +808,7 @@ myfsm::Push_RH_Done::run (double time, double period)
   }
 
   //TBD: Ungrasp both hands
-  ADVR_ROS::advr_grasp_control_srv srv;
-  srv.request.right_grasp = 0.0;
-  srv.request.left_grasp = 0.0;
-  // call the service
-  shared_data ()._grasp_client.call(srv);
+
 
   //transit("Homing");
 }
@@ -852,7 +853,7 @@ myfsm::Homing::entry (const XBot::FSM::Message& msg)
   // Get current hand
   KDL::Frame hand_pose_KDL;
   Eigen::Affine3d hand_pose;
-  geometry_msgs::Pose start_hand_pose;
+  geometry_msgs::Pose start_hand_pose,end_hand_pose;
 
   // Get hand pose
   shared_data()._robot->model().getPose("LSoftHand", hand_pose);
@@ -871,8 +872,8 @@ myfsm::Homing::entry (const XBot::FSM::Message& msg)
 
   // define the end frame
   geometry_msgs::PoseStamped end_hand_pose_stamped;
-  tf::poseEigenToMsg (shared_data().sl_hand_pose, end_hand_pose_stamped.pose);
-
+  tf::poseEigenToMsg (shared_data().sl_hand_pose, end_hand_pose);
+  start_hand_pose_stamped.pose = end_hand_pose;
 
   trajectory_utils::Cartesian end;
   end.distal_frame = "LSoftHand";
@@ -918,7 +919,7 @@ myfsm::Homing::entry (const XBot::FSM::Message& msg)
     // Get current hand
     KDL::Frame hand_pose_KDL_r;
     Eigen::Affine3d hand_pose_r;
-    geometry_msgs::Pose start_hand_pose_r;
+    geometry_msgs::Pose start_hand_pose_r,end_hand_pose_r;
 
     // Get hand pose
     shared_data()._robot->model().getPose("RSoftHand", hand_pose_r);
@@ -937,7 +938,8 @@ myfsm::Homing::entry (const XBot::FSM::Message& msg)
 
     // define the end frame
     geometry_msgs::PoseStamped end_hand_pose_stamped_r;
-    tf::poseEigenToMsg (shared_data().sr_hand_pose, end_hand_pose_stamped_r.pose);
+    tf::poseEigenToMsg (shared_data().sr_hand_pose, end_hand_pose_r);
+    end_hand_pose_stamped_r.pose = end_hand_pose_r;
 
 
     trajectory_utils::Cartesian end_r;
