@@ -1,0 +1,59 @@
+rostopic pub /hose_pose ADVR_ROS/im_pose_msg "name: ''
+pose_stamped:
+  header:
+    seq: 0
+    stamp:
+      secs: 0
+      nsecs: 0
+    frame_id: 'LSoftHand'
+  pose:
+    position:
+      x: 0.55
+      y: 0.34
+      z: 1.10
+    orientation:
+      x: 0.4987
+      y: -0.4646
+      z: -0.4987
+      w: 0.5354" -1
+
+
+
+rostopic pub /hose_pose ADVR_ROS/im_pose_msg "name: ''
+pose_stamped:
+  header:
+    seq: 0
+    stamp:
+      secs: 0
+      nsecs: 0
+    frame_id: 'RSoftHand'
+  pose:
+    position:
+      x: 0.70
+      y: -0.6
+      z: 1.16
+    orientation:
+      x: 0.4987
+      y: -0.4646
+      z: -0.4987
+      w: 0.5354" -1
+
+rostopic pub /hose_pose ADVR_ROS/im_pose_msg "name: ''
+pose_stamped:
+  header:
+    seq: 0
+    stamp:
+      secs: 0
+      nsecs: 0
+    frame_id: 'LSoftHand'
+  pose:
+    position:
+      x: 0.69
+      y: 0.45
+      z: 0.960
+    orientation:
+      x: 0.4987
+      y: -0.4646
+      z: -0.4987
+      w: 0.5354" -1
+
