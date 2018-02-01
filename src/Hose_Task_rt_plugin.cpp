@@ -64,6 +64,7 @@ Hose_Task::init_control_plugin (XBot::Handle::Ptr handle)
 
   /*Registers states*/
   fsm.register_state(std::make_shared<myfsm::Home>());
+  fsm.register_state(std::make_shared<myfsm::Home2>());
   fsm.register_state(std::make_shared<myfsm::Move_LH>());
   fsm.register_state(std::make_shared<myfsm::Grasp_LH>());
   fsm.register_state(std::make_shared<myfsm::Grasp_LH_Done>());

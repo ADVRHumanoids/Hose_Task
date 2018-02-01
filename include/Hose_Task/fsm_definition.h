@@ -115,6 +115,8 @@ namespace myfsm
 
     // Whether to home the robot in the Home state
     bool do_home_ = 0;
+
+    bool task_complete_=false;
   };
 
   class MacroState: public XBot::FSM::State <MacroState, SharedData>
@@ -142,6 +144,24 @@ namespace myfsm
       double localTimer = 0;
       double localStep = 0.001;
   };
+
+  class Home2: public MacroState
+  {
+    virtual std::string get_name () const {return "Home2";}
+
+    virtual void run (double time, double period);
+
+    virtual void entry (const XBot::FSM::Message& msg);
+
+    virtual void react (const XBot::FSM::Event& e);
+
+    virtual void exit ();
+
+    private:
+      double localTimer = 0;
+      double localStep = 0.001;
+  };
+
 
   class Move_LH: public MacroState
   {
