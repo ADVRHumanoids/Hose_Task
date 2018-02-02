@@ -49,7 +49,7 @@ pose_stamped:
   pose:
     position:
       x: 0.69
-      y: 0.45
+      y: 0.55
       z: 0.960
     orientation:
       x: 0.4987

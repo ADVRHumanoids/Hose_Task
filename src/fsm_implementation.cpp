@@ -736,9 +736,9 @@ myfsm::Push_RH::entry (const XBot::FSM::Message& msg)
   s1.T.data = 3.0;         // traj duration
 
   //oly for simulation
-  ADVR_ROS::advr_grasp_control_srv grasp_srv;
-  grasp_srv.request.right_grasp = 0.0;
-  grasp_srv.request.left_grasp = 1.0;
+  //ADVR_ROS::advr_grasp_control_srv grasp_srv;
+  //grasp_srv.request.right_grasp = 0.0;
+  //grasp_srv.request.left_grasp = 1.0;
   // call the service
   shared_data ()._grasp_client.call(grasp_srv);
 
