@@ -740,7 +740,7 @@ myfsm::Push_RH::entry (const XBot::FSM::Message& msg)
   //grasp_srv.request.right_grasp = 0.0;
   //grasp_srv.request.left_grasp = 1.0;
   // call the service
-  shared_data ()._grasp_client.call(grasp_srv);
+  //shared_data ()._grasp_client.call(grasp_srv);
 
 
   for (int i=0; i<6; i++)
